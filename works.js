@@ -29,10 +29,10 @@
 
 const WORKS = [
   {
-    order: 3,
-    url: "https://youtu.be/d2Ha2hTR_Ic",
-    title: "[Maru_2] Bol4- 'Find You' [motion Graphics]",
-    meta: "2026 · typo,motion graphics",
+    order: 1,
+    url: "https://youtu.be/GRSXjWZKfgw",
+    title: "[Maru_2]【Ado】好きでいて[motion Graphics]",
+    meta: "2026 · typo,motion graphics,합작",
   },
   {
     order: 2,
@@ -41,10 +41,10 @@ const WORKS = [
     meta: "2026 · typo,motion graphics",
   },
   {
-    order: 1,
-    url: "https://youtu.be/GRSXjWZKfgw",
-    title: "[Maru_2]【Ado】好きでいて[motion Graphics]",
-    meta: "2026 · typo,motion graphics,합작",
+    order: 3,
+    url: "https://youtu.be/d2Ha2hTR_Ic",
+    title: "[Maru_2] Bol4- 'Find You' [motion Graphics]",
+    meta: "2026 · typo,motion graphics",
   },
 
   // ▼ 직접 올린 mp4 예시 (쓰려면 앞의 // 를 지우고 파일 이름을 맞추세요)
