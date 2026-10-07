@@ -1,0 +1,50 @@
+/*
+  ★ 작업물 목록 — 영상을 추가/수정/삭제할 때는 이 파일만 고치면 돼요 ★
+
+  [YouTube 영상 추가]
+    아래 목록에 한 줄(중괄호 { } 한 덩어리)을 복사해서 붙이고,
+    url 에 유튜브 주소를 "그대로" 붙여 넣으세요. 썸네일은 자동으로 나와요.
+    (youtu.be/..., youtube.com/watch?v=..., youtube.com/shorts/... 다 가능)
+
+  [내 mp4 파일 추가]
+    1) 영상 파일을 videos/ 폴더에 넣어요.   예) videos/my-work.mp4
+    2) (선택) 썸네일 이미지를 thumbs/ 폴더에 넣어요.   예) thumbs/my-work.jpg
+    3) 아래 예시 중 "src" 줄을 복사해서 쓰세요.
+
+  [순서]
+    위에 적을수록 사이트에서도 앞에 나와요. 최신 작업을 맨 위에 두세요.
+
+  [잠깐 숨기기]
+    줄 맨 앞에 // 를 붙이면 숨겨지고, 지우면 다시 보여요. (Ctrl+/ 로도 돼요)
+
+  [주의]
+    - 한 덩어리가 끝나면 맨 뒤에 쉼표(,)를 꼭 붙이세요.
+    - 따옴표(" ")는 지우지 마세요.
+    - 제목 안에 큰따옴표(")를 쓰고 싶으면 앞에 \ 를 붙여 \" 로 쓰세요.
+*/
+
+const WORKS = [
+  {
+    url: "https://youtu.be/d2Ha2hTR_Ic",
+    title: "[Maru_2] Bol4- 'Find You' [motion Graphics]",
+    meta: "2026 · typo,motion graphics",
+  },
+  {
+    url: "https://youtu.be/QUdiDIH1u-g",
+    title: "[Maru_2] ryo (supercell) / メルト CPK! Remix (初音ミク ver.) [motion Graphics]",
+    meta: "2026 · typo,motion graphics",
+  },
+  {
+    url: "https://youtu.be/GRSXjWZKfgw",
+    title: "[Maru_2]【Ado】好きでいて[motion Graphics]",
+    meta: "2026 · typo,motion graphics,합작",
+  },
+
+  // ▼ 직접 올린 mp4 예시 (쓰려면 앞의 // 를 지우고 파일 이름을 맞추세요)
+  // {
+  //   src: "videos/my-work.mp4",
+  //   thumb: "thumbs/my-work.jpg",   // 썸네일은 없어도 돼요
+  //   title: "작품 제목",
+  //   meta: "2026 · 모션 그래픽",
+  // },
+];

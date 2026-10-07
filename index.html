@@ -55,53 +55,8 @@
     <section id="work" class="section">
       <h2>Work</h2>
 
-      <div class="grid">
-
-        <!-- ▼ 카드 한 개 = 영상 한 개. 복사해서 늘리면 됩니다. -->
-
-        <!-- (A) 유튜브 영상: data-type="youtube", data-id에 영상 주소의 v= 뒤 글자를 넣어요 -->
-        <button class="card" data-type="youtube" data-id="d2Ha2hTR_Ic">
-          <div class="thumb">
-            <img src="https://img.youtube.com/vi/d2Ha2hTR_Ic/hqdefault.jpg" alt="" loading="lazy" />
-            <span class="play">▶</span>
-          </div>
-          <h3>[Maru_2] Bol4- 'Find You' [motion Graphics]</h3>
-          <p>2026 · typo,motion graphics</p>
-        </button>
-        
-        <!-- (A) 유튜브 영상: data-type="youtube", data-id에 영상 주소의 v= 뒤 글자를 넣어요 -->
-        <button class="card" data-type="youtube" data-id="QUdiDIH1u-g">
-          <div class="thumb">
-            <img src="https://img.youtube.com/vi/QUdiDIH1u-g/hqdefault.jpg" alt="" loading="lazy" />
-            <span class="play">▶</span>
-          </div>
-          <h3>[Maru_2] ryo (supercell) / メルト CPK! Remix (初音ミク ver.) [motion Graphics]</h3>
-          <p>2026 · typo,motion graphics</p>
-        </button>
-
-        <!-- (A) 유튜브 영상: data-type="youtube", data-id에 영상 주소의 v= 뒤 글자를 넣어요 -->
-        <button class="card" data-type="youtube" data-id="GRSXjWZKfgw">
-          <div class="thumb">
-            <img src="https://img.youtube.com/vi/GRSXjWZKfgw/hqdefault.jpg" alt="" loading="lazy" />
-            <span class="play">▶</span>
-          </div>
-          <h3>[Maru_2]【Ado】好きでいて[motion Graphics]</h3>
-          <p>2026 · typo,motion graphics,합작</p>
-        </button>
-
-        <!-- (B) 직접 올린 mp4: data-type="mp4", data-src에 파일 경로를 넣어요 -->
-         <!--
-        <button class="card" data-type="mp4" data-src="videos/sample.mp4">
-          <div class="thumb placeholder">
-            <!-- 썸네일 이미지를 thumbs/ 폴더에 넣고 아래 줄 주석을 풀어 쓰세요 -->
-            <!-- <img src="thumbs/sample.jpg" alt="" loading="lazy" /> -->
-            <!--<span class="play">▶</span>
-          </div>
-          <h3>샘플 영상 (mp4)</h3>
-          <p>2026 · 모션 그래픽</p>
-        </button>-->
-
-      </div>
+      <!-- 카드는 works.js 의 목록으로 자동 생성돼요. 영상 추가는 works.js 에서! -->
+      <div class="grid" id="grid"></div>
     </section>
 
 
@@ -125,6 +80,7 @@
     <div class="modal-body" id="modal-body"></div>
   </div>
 
+  <script src="works.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
