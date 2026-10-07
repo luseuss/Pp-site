@@ -75,8 +75,15 @@ function buildCard(work) {
 }
 
 // 목록 전체를 화면에 그리기
+// order 번호가 작은 순서대로 정렬 (order 가 없으면 맨 뒤, 같으면 파일에 적힌 순서 유지)
 if (typeof WORKS !== 'undefined') {
-  WORKS.forEach((work) => {
+  const orderOf = (w) => (typeof w.order === 'number' ? w.order : Infinity);
+  const sorted = WORKS
+    .map((work, i) => ({ work, i }))
+    .sort((a, b) => (orderOf(a.work) - orderOf(b.work)) || (a.i - b.i))
+    .map((x) => x.work);
+
+  sorted.forEach((work) => {
     const card = buildCard(work);
     if (card) grid.appendChild(card);
   });

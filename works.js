@@ -12,7 +12,11 @@
     3) 아래 예시 중 "src" 줄을 복사해서 쓰세요.
 
   [순서]
-    위에 적을수록 사이트에서도 앞에 나와요. 최신 작업을 맨 위에 두세요.
+    영상마다 order 번호를 적어요. 번호가 작을수록 사이트에서 앞에 나와요.
+      order: 1  → 맨 앞,  order: 2  → 그다음 ...
+    순서를 바꾸고 싶으면 숫자만 바꾸면 돼요. 파일 안에서 위치는 상관없어요.
+    새 영상을 맨 앞에 넣고 싶다면? 기존 번호를 밀 필요 없이 order: 0 (또는 -1)을 쓰세요.
+    order 를 안 적은 영상은 맨 뒤에 나와요. (번호가 같으면 파일에 적힌 순서대로)
 
   [잠깐 숨기기]
     줄 맨 앞에 // 를 붙이면 숨겨지고, 지우면 다시 보여요. (Ctrl+/ 로도 돼요)
@@ -25,16 +29,19 @@
 
 const WORKS = [
   {
+    order: 1,
     url: "https://youtu.be/d2Ha2hTR_Ic",
     title: "[Maru_2] Bol4- 'Find You' [motion Graphics]",
     meta: "2026 · typo,motion graphics",
   },
   {
+    order: 2,
     url: "https://youtu.be/QUdiDIH1u-g",
     title: "[Maru_2] ryo (supercell) / メルト CPK! Remix (初音ミク ver.) [motion Graphics]",
     meta: "2026 · typo,motion graphics",
   },
   {
+    order: 3,
     url: "https://youtu.be/GRSXjWZKfgw",
     title: "[Maru_2]【Ado】好きでいて[motion Graphics]",
     meta: "2026 · typo,motion graphics,합작",
@@ -42,6 +49,7 @@ const WORKS = [
 
   // ▼ 직접 올린 mp4 예시 (쓰려면 앞의 // 를 지우고 파일 이름을 맞추세요)
   // {
+  //   order: 4,
   //   src: "videos/my-work.mp4",
   //   thumb: "thumbs/my-work.jpg",   // 썸네일은 없어도 돼요
   //   title: "작품 제목",
