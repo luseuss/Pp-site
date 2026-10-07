@@ -8,6 +8,7 @@
 const modal = document.getElementById('modal');
 const modalBody = document.getElementById('modal-body');
 const grid = document.getElementById('grid');
+const filtersEl = document.getElementById('filters');
 
 // 유튜브 주소에서 영상 ID만 뽑아내기 (여러 형태의 주소를 다 처리)
 function getYouTubeId(url) {
@@ -22,10 +23,17 @@ function getYouTubeId(url) {
   return null;
 }
 
+// work.tags (["MV","AMV"] 또는 "MV, AMV") → 깨끗한 배열
+function getTags(work) {
+  const raw = Array.isArray(work.tags) ? work.tags : (typeof work.tags === 'string' ? work.tags.split(',') : []);
+  return raw.map((t) => String(t).trim()).filter(Boolean);
+}
+
 // 작업물 하나 → 카드(버튼) 하나 만들기
 function buildCard(work) {
   const card = document.createElement('button');
   card.className = 'card';
+  card.tagKeys = new Set(getTags(work).map((t) => t.toLowerCase())); // 필터에서 쓰는 카테고리 (대소문자 구분 X)
 
   const thumb = document.createElement('div');
   thumb.className = 'thumb';
@@ -83,10 +91,36 @@ if (typeof WORKS !== 'undefined') {
     .sort((a, b) => (orderOf(a.work) - orderOf(b.work)) || (a.i - b.i))
     .map((x) => x.work);
 
+  const cards = [];
+  const labels = new Map();   // 카테고리 이름 (처음 나온 표기 그대로, 나온 순서대로)
   sorted.forEach((work) => {
     const card = buildCard(work);
-    if (card) grid.appendChild(card);
+    if (!card) return;
+    grid.appendChild(card);
+    cards.push(card);
+    getTags(work).forEach((t) => { if (!labels.has(t.toLowerCase())) labels.set(t.toLowerCase(), t); });
   });
+
+  // 카테고리가 하나라도 있으면 "전체 / MV / AMV …" 버튼을 만든다
+  if (labels.size > 0) {
+    const buttons = [];
+    const select = (key) => {
+      cards.forEach((c) => { c.hidden = key !== '' && !c.tagKeys.has(key); });
+      buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.key === key)));
+    };
+    [['', '전체'], ...labels].forEach(([key, label]) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'filter';
+      b.dataset.key = key;
+      b.textContent = label;
+      b.addEventListener('click', () => select(key));
+      buttons.push(b);
+      filtersEl.appendChild(b);
+    });
+    filtersEl.hidden = false;
+    select('');
+  }
 }
 
 // 팝업 열기: 카드의 data-type 에 따라 다른 플레이어를 만든다

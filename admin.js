@@ -120,8 +120,19 @@
     return works;
   }
 
-  const KNOWN = ['order', 'url', 'src', 'thumb', 'title', 'meta'];
+  const KNOWN = ['order', 'url', 'src', 'thumb', 'title', 'meta', 'tags'];
   const orderOf = (w) => (typeof w.order === 'number' ? w.order : Infinity);
+
+  // "MV, AMV" 같은 글자 → ["MV","AMV"] (빈 칸 제거, 대소문자 다른 중복 제거)
+  function parseTags(value) {
+    const seen = new Set();
+    return String(value).split(',').map((t) => t.trim()).filter((t) => {
+      const k = t.toLowerCase();
+      if (!t || seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    });
+  }
 
   function fromWorks(works) {
     // 사이트(script.js)와 같은 규칙으로 정렬해서 보여준다
@@ -135,6 +146,7 @@
         thumb: w.thumb || '',
         title: w.title || '',
         meta: w.meta || '',
+        tags: parseTags(Array.isArray(w.tags) ? w.tags.join(',') : (w.tags || '')),
         extra: Object.fromEntries(Object.entries(w).filter(([k]) => !KNOWN.includes(k))),
       }));
   }
@@ -151,6 +163,7 @@
       }
       o.title = it.title.trim();
       o.meta = it.meta.trim();
+      if (it.tags.length) o.tags = [...it.tags];
       return { ...o, ...it.extra };
     });
   }
@@ -243,6 +256,10 @@
       bind('.f-thumb', 'thumb', () => updatePreview(li, it));
       bind('.f-title', 'title');
       bind('.f-meta', 'meta');
+      const tagsInput = $('.f-tags', li);
+      tagsInput.value = it.tags.join(', ');
+      tagsInput.addEventListener('input', () => { it.tags = parseTags(tagsInput.value); updateDirty(); });
+      tagsInput.addEventListener('change', refreshChips);   // 입력을 마쳤을 때 다른 영상의 버튼 목록도 갱신
       sync();
 
       const up = $('.up', li), down = $('.down', li);
@@ -254,7 +271,40 @@
 
       list.appendChild(li);
     });
+    refreshChips();
     updateDirty();
+  }
+
+  // 지금까지 쓴 모든 카테고리 (처음 쓴 표기 그대로)
+  function allTags() {
+    const map = new Map();
+    items.forEach((it) => it.tags.forEach((t) => { if (!map.has(t.toLowerCase())) map.set(t.toLowerCase(), t); }));
+    return [...map.values()];
+  }
+
+  // 각 영상 아래에 "이미 쓴 카테고리" 버튼을 만든다. 누르면 그 영상에 붙였다 뗐다 해요.
+  function refreshChips() {
+    const tags = allTags();
+    [...list.children].forEach((li, i) => {
+      const it = items[i];
+      const box = $('.chips', li);
+      box.textContent = '';
+      tags.forEach((t) => {
+        const on = it.tags.some((x) => x.toLowerCase() === t.toLowerCase());
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'chip';
+        b.textContent = t;
+        b.setAttribute('aria-pressed', String(on));
+        b.addEventListener('click', () => {
+          it.tags = on ? it.tags.filter((x) => x.toLowerCase() !== t.toLowerCase()) : [...it.tags, t];
+          $('.f-tags', li).value = it.tags.join(', ');
+          refreshChips();
+          updateDirty();
+        });
+        box.appendChild(b);
+      });
+    });
   }
 
   function move(i, d) {
@@ -366,7 +416,7 @@
 
   // ---------- 시작 ----------
   $('#add').addEventListener('click', () => {
-    items.push({ type: 'youtube', url: '', src: '', thumb: '', title: '', meta: `${new Date().getFullYear()} · `, extra: {} });
+    items.push({ type: 'youtube', url: '', src: '', thumb: '', title: '', meta: `${new Date().getFullYear()} · `, tags: [], extra: {} });
     render();
     const last = list.lastElementChild;
     if (last) { $('.f-url', last).focus(); last.scrollIntoView({ block: 'center', behavior: 'smooth' }); }

@@ -55,7 +55,10 @@
     <section id="work" class="section">
       <h2>Work</h2>
 
-      <!-- 카드는 works.js 의 목록으로 자동 생성돼요. 영상 추가는 works.js 에서! -->
+      <!-- 카테고리 버튼: works.js 의 tags 로 자동 생성돼요 (tags 가 하나도 없으면 안 보여요) -->
+      <div class="filters" id="filters" role="group" aria-label="카테고리" hidden></div>
+
+      <!-- 카드는 works.js 의 목록으로 자동 생성돼요. 영상 추가는 관리 페이지(admin.html)나 works.js 에서! -->
       <div class="grid" id="grid"></div>
     </section>
 
