@@ -29,7 +29,7 @@
 
 const WORKS = [
   {
-    order: 1,
+    order: 3,
     url: "https://youtu.be/d2Ha2hTR_Ic",
     title: "[Maru_2] Bol4- 'Find You' [motion Graphics]",
     meta: "2026 · typo,motion graphics",
@@ -41,7 +41,7 @@ const WORKS = [
     meta: "2026 · typo,motion graphics",
   },
   {
-    order: 3,
+    order: 1,
     url: "https://youtu.be/GRSXjWZKfgw",
     title: "[Maru_2]【Ado】好きでいて[motion Graphics]",
     meta: "2026 · typo,motion graphics,합작",
