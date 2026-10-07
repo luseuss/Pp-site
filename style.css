@@ -103,3 +103,13 @@ a { color: inherit; }
 @media (max-width: 600px) {
   .hero { padding-top: 72px; padding-bottom: 72px; }
 }
+
+/* About: 글 옆에 로고 이미지 */
+.about { display: flex; align-items: center; gap: 64px; }
+.about p { flex: 0 1 auto; }
+.about-img { width: 220px; height: 220px; object-fit: contain; flex-shrink: 0; }
+
+@media (max-width: 600px) {
+  .about { flex-direction: column-reverse; align-items: flex-start; gap: 24px; }
+  .about-img { width: 140px; height: 140px; }
+}
