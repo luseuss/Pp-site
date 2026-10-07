@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<!--
+  관리 페이지: 영상 추가/수정/삭제/순서 변경을 화면에서 하고, 저장하면 GitHub의 works.js 를 고쳐요.
+  주소: 사이트주소/admin.html  (검색에 안 나오게 noindex 처리, 저장은 내 토큰이 있어야만 가능)
+-->
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>관리 | MaRu_2</title>
+  <style>
+    :root { --bg:#fff; --text:#111; --muted:#777; --line:#e8e8e8; --soft:#f6f6f6; --danger:#c0392b; --ok:#1e7e46; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); line-height: 1.6; padding-bottom: 96px;
+      font-family: -apple-system, "Pretendard", "Noto Sans KR", "Segoe UI", sans-serif; }
+    a { color: inherit; }
+    .bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-bottom: 1px solid var(--line); }
+    .bar a { color: var(--muted); font-size: .9rem; text-decoration: none; }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 24px 16px; }
+    .hint { color: var(--muted); font-size: .9rem; margin-bottom: 20px; }
+    details { border: 1px solid var(--line); border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; }
+    summary { cursor: pointer; font-weight: 600; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0; }
+    label { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
+    input, select { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 6px; font: inherit; background: #fff; color: var(--text); }
+    input:focus, select:focus, button:focus-visible { outline: 2px solid var(--text); outline-offset: 1px; }
+    .full { grid-column: 1 / -1; }
+    .check { display: flex; align-items: center; gap: 8px; font-size: .9rem; color: var(--text); }
+    .check input { width: auto; }
+    .help { font-size: .85rem; color: var(--muted); margin-top: 8px; }
+    .help ol { padding-left: 20px; }
+    .help code { background: var(--soft); padding: 1px 5px; border-radius: 4px; }
+    .warn { color: var(--danger); font-weight: 600; }
+    #msg { min-height: 24px; margin-bottom: 12px; font-size: .92rem; }
+    #msg.err { color: var(--danger); } #msg.ok { color: var(--ok); }
+    #list { list-style: none; display: grid; gap: 14px; }
+    .item { display: grid; grid-template-columns: 36px 160px 1fr auto; gap: 14px; align-items: start;
+      border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+    .num { font-weight: 700; color: var(--muted); padding-top: 4px; }
+    .thumb { aspect-ratio: 16/9; background: var(--soft); border-radius: 6px; overflow: hidden; display: grid; place-items: center; color: var(--muted); font-size: .75rem; text-align: center; }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; }
+    .fields { display: grid; gap: 10px; }
+    .row2 { display: grid; grid-template-columns: 110px 1fr; gap: 10px; }
+    .acts { display: grid; gap: 6px; }
+    button { font: inherit; cursor: pointer; border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 7px 12px; color: var(--text); }
+    button:hover:not(:disabled) { background: var(--soft); }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    .acts button { padding: 6px 10px; }
+    .acts .del { color: var(--danger); }
+    .primary { background: var(--text); color: #fff; border-color: var(--text); }
+    .primary:hover:not(:disabled) { background: #333; }
+    #add { margin-top: 16px; width: 100%; padding: 12px; border-style: dashed; }
+    .savebar { position: fixed; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,.96); border-top: 1px solid var(--line);
+      display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding: 12px 16px; backdrop-filter: blur(6px); }
+    #dirty { margin-right: auto; font-size: .88rem; color: var(--muted); }
+    #dirty.on { color: var(--danger); font-weight: 600; }
+    textarea { width: 100%; height: 220px; font: .8rem/1.5 ui-monospace, Consolas, monospace; padding: 10px; border: 1px solid var(--line); border-radius: 6px; margin-top: 10px; }
+    [hidden] { display: none !important; }
+    @media (max-width: 680px) {
+      .item { grid-template-columns: 1fr; }
+      .num { padding: 0; } .acts { grid-template-columns: repeat(3, 1fr); }
+      .grid2 { grid-template-columns: 1fr; } .row2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="bar">
+    <strong>MaRu_2 관리</strong>
+    <a href="index.html">← 사이트 보기</a>
+  </header>
+
+  <main class="wrap">
+    <p class="hint">영상을 추가·수정·삭제하고 ↑↓로 순서를 바꾼 뒤, 아래 <b>GitHub에 저장</b>을 누르세요. 1~2분 뒤 사이트에 반영돼요. 순서 번호는 위에서부터 1, 2, 3… 으로 자동으로 정해져요.</p>
+
+    <details id="settings">
+      <summary>연결 설정 (처음 한 번만)</summary>
+      <div class="grid2">
+        <div><label for="s-owner">GitHub 아이디</label><input id="s-owner" autocomplete="off" /></div>
+        <div><label for="s-repo">저장소 이름</label><input id="s-repo" autocomplete="off" /></div>
+        <div class="full"><label for="s-branch">브랜치 (사이트가 보여 주는 브랜치)</label><input id="s-branch" autocomplete="off" /></div>
+        <div class="full"><label for="s-token">접근 토큰 (저장할 때만 필요해요)</label>
+          <input id="s-token" type="password" autocomplete="off" placeholder="github_pat_..." /></div>
+        <label class="check full"><input type="checkbox" id="s-remember" /> 이 브라우저에 토큰 기억하기 (내 컴퓨터에서만 체크하세요)</label>
+      </div>
+      <div class="help">
+        <p class="warn">토큰은 비밀번호와 같아요. 다른 사람이나 채팅에 절대 보내지 마세요.</p>
+        <p style="margin-top:8px"><b>토큰 만드는 법</b></p>
+        <ol>
+          <li>GitHub 로그인 → 오른쪽 위 프로필 → <code>Settings</code> → 맨 아래 <code>Developer settings</code></li>
+          <li><code>Personal access tokens</code> → <code>Fine-grained tokens</code> → <code>Generate new token</code></li>
+          <li><code>Repository access</code>: <code>Only select repositories</code> → 이 저장소만 선택</li>
+          <li><code>Permissions</code> → <code>Repository permissions</code> → <code>Contents</code>: <code>Read and write</code></li>
+          <li>만료일은 90일 정도로 하고 만들기 → 나온 <code>github_pat_...</code> 를 위 칸에 붙여넣기 (한 번만 보여요)</li>
+        </ol>
+        <p style="margin-top:8px">토큰이 없어도 <b>코드 복사</b>로 만든 내용을 <code>works.js</code>에 붙여넣을 수 있어요.</p>
+      </div>
+      <p class="help">mp4 파일 자체는 이 화면에서 올릴 수 없어요. <code>videos/</code> 폴더에 넣어 올린 뒤, 여기서는 파일 경로만 적으세요.</p>
+    </details>
+
+    <p id="msg" role="status" aria-live="polite"></p>
+
+    <ol id="list"></ol>
+    <button id="add" type="button">+ 영상 추가</button>
+
+    <details id="codebox" style="margin-top:20px" hidden>
+      <summary>만들어진 works.js 코드</summary>
+      <textarea id="code" readonly></textarea>
+    </details>
+  </main>
+
+  <footer class="savebar">
+    <span id="dirty"></span>
+    <button id="reload" type="button">되돌리기</button>
+    <button id="copy" type="button">코드 복사</button>
+    <button id="save" type="button" class="primary">GitHub에 저장</button>
+  </footer>
+
+  <template id="row-tpl">
+    <li class="item">
+      <div class="num"></div>
+      <div class="thumb"></div>
+      <div class="fields">
+        <div class="row2">
+          <div><label>종류</label>
+            <select class="f-type"><option value="youtube">YouTube</option><option value="mp4">내 mp4</option></select></div>
+          <div class="g-url"><label>YouTube 주소</label><input class="f-url" placeholder="https://youtu.be/..." /></div>
+          <div class="g-src" hidden><label>mp4 파일 경로</label><input class="f-src" placeholder="videos/my-work.mp4" /></div>
+        </div>
+        <div class="g-thumb" hidden><label>썸네일 이미지 경로 (선택)</label><input class="f-thumb" placeholder="thumbs/my-work.jpg" /></div>
+        <div><label>제목</label><input class="f-title" /></div>
+        <div><label>설명 (예: 2026 · 모션 그래픽)</label><input class="f-meta" /></div>
+      </div>
+      <div class="acts">
+        <button type="button" class="up" aria-label="위로">↑</button>
+        <button type="button" class="down" aria-label="아래로">↓</button>
+        <button type="button" class="del" aria-label="삭제">삭제</button>
+      </div>
+    </li>
+  </template>
+
+  <script src="admin.js"></script>
+</body>
+</html>
