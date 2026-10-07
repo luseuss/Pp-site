@@ -40,18 +40,21 @@ const WORKS = [
     url: "https://youtu.be/GRSXjWZKfgw",
     title: "[Maru_2]【Ado】好きでいて[motion Graphics]",
     meta: "2026 · typo,motion graphics,합작",
+    tags: ["MV"],
   },
   {
     order: 2,
     url: "https://youtu.be/QUdiDIH1u-g",
     title: "[Maru_2] ryo (supercell) / メルト CPK! Remix (初音ミク ver.) [motion Graphics]",
     meta: "2026 · typo,motion graphics",
+    tags: ["MV"],
   },
   {
     order: 3,
     url: "https://youtu.be/d2Ha2hTR_Ic",
     title: "[Maru_2] Bol4- 'Find You' [motion Graphics]",
     meta: "2026 · typo,motion graphics",
+    tags: ["MV"],
   },
 
   // ▼ 직접 올린 mp4 예시 (쓰려면 앞의 // 를 지우고 파일 이름을 맞추세요)
@@ -61,6 +64,5 @@ const WORKS = [
   //   thumb: "thumbs/my-work.jpg",   // 썸네일은 없어도 돼요
   //   title: "작품 제목",
   //   meta: "2026 · 모션 그래픽",
-  //   tags: ["MV"],                   // 카테고리 (선택)
   // },
 ];
