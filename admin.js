@@ -89,12 +89,13 @@
   const IMG_EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' };
   const MAX_UPLOAD = 5 * 1024 * 1024;   // 올릴 파일 한 개 최대 크기
 
-  const blobToB64 = async (blob) => {
-    const bytes = new Uint8Array(await blob.arrayBuffer());
-    let bin = '';
-    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-    return btoa(bin);
-  };
+  // 브라우저 내장 FileReader 로 base64 변환 (큰 문자열을 직접 이어 붙이지 않아 메모리를 덜 써요)
+  const blobToB64 = (blob) => new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(String(fr.result).split(',')[1] || '');
+    fr.onerror = () => reject(new Error('이미지를 읽을 수 없어요.'));
+    fr.readAsDataURL(blob);
+  });
 
   // 큰 이미지는 긴 변이 maxSide 이하가 되게 줄이고(png·webp 는 투명 유지), gif 는 움직임을 지키려고 그대로 올려요.
   async function prepareImage(file, maxSide) {
@@ -107,17 +108,22 @@
     }
     let bmp;
     try { bmp = await createImageBitmap(file); } catch (e) { throw new Error('이미지를 읽을 수 없어요. 다른 파일을 골라 주세요.'); }
-    const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
     let blob = file;
-    if (scale < 1 || file.size > 1.5 * 1024 * 1024) {
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.max(1, Math.round(bmp.width * scale));
-      canvas.height = Math.max(1, Math.round(bmp.height * scale));
-      canvas.getContext('2d').drawImage(bmp, 0, 0, canvas.width, canvas.height);
-      const out = await new Promise((resolve) => canvas.toBlob(resolve, file.type, 0.88));
-      if (out && out.size < file.size) blob = out;   // 줄였는데 더 커지면 원본 유지
+    let canvas = null;
+    try {
+      const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
+      if (scale < 1 || file.size > 1.5 * 1024 * 1024) {
+        canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(bmp.width * scale));
+        canvas.height = Math.max(1, Math.round(bmp.height * scale));
+        canvas.getContext('2d').drawImage(bmp, 0, 0, canvas.width, canvas.height);
+        const out = await new Promise((resolve) => canvas.toBlob(resolve, file.type, 0.88));
+        if (out && out.size < file.size) blob = out;   // 줄였는데 더 커지면 원본 유지
+      }
+    } finally {
+      if (bmp.close) bmp.close();                       // 디코딩된 이미지 메모리 반납
+      if (canvas) { canvas.width = 0; canvas.height = 0; }   // 캔버스 메모리 반납 (일부 브라우저는 이래야 풀려요)
     }
-    if (bmp.close) bmp.close();
     if (blob.size > MAX_UPLOAD) throw new Error('이미지가 아직 너무 커요. 더 작은 이미지를 골라 주세요.');
     return { blob, ext };
   }
@@ -398,7 +404,19 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
     };
   }
 
+  // 지금 화면에서 더 이상 쓰지 않는 이미지는 메모리에서 놓아 준다 (올릴 목록 + 미리보기용 blob 주소)
+  function gcImages() {
+    const used = new Set([...items.map((it) => it.thumb.trim()), site.aboutImage.trim()]);
+    for (const [path, url] of previews) {
+      if (!used.has(path)) { URL.revokeObjectURL(url); previews.delete(path); }
+    }
+    for (const path of pendingUploads.keys()) {
+      if (!used.has(path)) pendingUploads.delete(path);
+    }
+  }
+
   function updateDirty() {
+    gcImages();
     const d = isDirty();
     const on = d.works || d.site;
     const what = [d.works && '영상', d.site && '사이트 정보'].filter(Boolean).join(', ');
@@ -471,7 +489,7 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
         thumbFile.value = '';
         if (!f) return;
         try {
-          const { path, bytes } = await stageImage(f, 'thumbs', 1280);
+          const { path, bytes } = await stageImage(f, 'thumbs', 800);
           it.thumb = path;
           thumbInput.value = path;
           updatePreview(li, it);
@@ -845,7 +863,7 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
     e.target.value = '';
     if (!f) return;
     try {
-      const { path, bytes } = await stageImage(f, 'images', 1200);
+      const { path, bytes } = await stageImage(f, 'images', 640);
       site.aboutImage = path;
       $('#f-about-image').value = path;
       updateAboutPreview();

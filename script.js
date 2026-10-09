@@ -177,6 +177,7 @@ function buildCard(work) {
     img.src = thumbSrc;
     img.alt = '';
     img.loading = 'lazy';
+    img.decoding = 'async';
     thumb.appendChild(img);
   } else {
     thumb.classList.add('placeholder');
@@ -193,7 +194,6 @@ function buildCard(work) {
   meta.textContent = work.meta || '';
 
   card.append(thumb, title, meta);
-  card.addEventListener('click', () => openModal(card));
   return card;
 }
 
@@ -223,13 +223,13 @@ if (typeof WORKS !== 'undefined') {
       cards.forEach((c) => { c.hidden = key !== '' && !c.tagKeys.has(key); });
       buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.key === key)));
       // 보이는 카드들이 차례로 다시 나타나게 한다
+      cards.filter((c) => c.hidden).forEach((c) => c.classList.remove('pop'));   // 숨겨진 카드는 효과 표시도 정리
       if (animate && animationsOn()) {
         cards.filter((c) => !c.hidden).forEach((c, i) => {
           c.classList.remove('pop');
           void c.offsetWidth;   // 같은 애니메이션을 다시 시작하기 위한 트릭
           c.style.setProperty('--d', `${Math.min(i, 8) * 60}ms`);
-          c.classList.add('pop');
-          c.addEventListener('animationend', () => c.classList.remove('pop'), { once: true });
+          c.classList.add('pop');   // 끝나면 아래의 animationend 처리(한 곳)가 지워줘요
         });
       }
     };
@@ -239,19 +239,40 @@ if (typeof WORKS !== 'undefined') {
       b.className = 'filter';
       b.dataset.key = key;
       b.textContent = label;
-      b.addEventListener('click', () => select(key));
       buttons.push(b);
       filtersEl.appendChild(b);
+    });
+    // 버튼마다가 아니라 한 곳에서 클릭을 처리 (리스너 수를 늘리지 않음)
+    filtersEl.addEventListener('click', (e) => {
+      const b = e.target.closest('.filter');
+      if (b) select(b.dataset.key);
     });
     filtersEl.hidden = false;
     select('', false);
   }
 }
 
+// 카드 클릭은 grid 한 곳에서 처리 (카드마다 리스너를 달지 않음)
+grid.addEventListener('click', (e) => {
+  const card = e.target.closest('.card');
+  if (card) openModal(card);
+});
+// 카드의 "나타나기" 효과가 끝나면 효과 표시(.pop)를 한 곳에서 지운다
+grid.addEventListener('animationend', (e) => {
+  if (e.target.classList) e.target.classList.remove('pop');
+});
+
+// 팝업 안의 영상이 쓰던 자원을 확실히 놓아 준다 (iframe 은 빈 페이지로 바꾼 뒤 제거, video 는 멈추고 주소를 비움)
+function clearModal() {
+  modalBody.querySelectorAll('iframe').forEach((f) => { f.src = 'about:blank'; });
+  modalBody.querySelectorAll('video').forEach((v) => { v.pause(); v.removeAttribute('src'); v.load(); });
+  modalBody.textContent = '';
+}
+
 // 팝업 열기: 카드의 data-type 에 따라 다른 플레이어를 만든다
 function openModal(card) {
   const type = card.dataset.type;
-  modalBody.innerHTML = '';
+  clearModal();
 
   if (type === 'youtube') {
     const iframe = document.createElement('iframe');
@@ -275,7 +296,7 @@ function openModal(card) {
 // 팝업 닫기: 안의 내용도 비워야 영상 소리가 멈춘다
 function closeModal() {
   modal.hidden = true;
-  modalBody.innerHTML = '';
+  clearModal();
   document.body.style.overflow = '';
 }
 
@@ -293,11 +314,13 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.h
   const targets = [...document.querySelectorAll('.section > h2, .about-img, .about-text, .filters, .card, #contact-body > p')];
   targets.forEach((el) => el.classList.add('reveal'));
   if ('IntersectionObserver' in window) {
+    let remaining = targets.length;
     const io = new IntersectionObserver((entries) => {
       entries.filter((e) => e.isIntersecting).forEach((e, i) => {
         e.target.style.setProperty('--d', `${Math.min(i, 6) * 80}ms`);
         e.target.classList.add('in');
         io.unobserve(e.target);
+        if (--remaining === 0) io.disconnect();   // 모두 나타났으면 관찰자 정리
       });
     }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
     targets.forEach((el) => io.observe(el));
@@ -320,7 +343,11 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.h
   // 3) 스크롤하면 맨 위 메뉴에 그림자
   const header = document.querySelector('.site-header');
   if (header) {
-    const onScroll = () => header.classList.toggle('scrolled', window.scrollY > 8);
+    let scrolled = false;
+    const onScroll = () => {
+      const now = window.scrollY > 8;
+      if (now !== scrolled) { scrolled = now; header.classList.toggle('scrolled', now); }   // 바뀔 때만 DOM 을 건드림
+    };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
   }

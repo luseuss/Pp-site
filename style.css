@@ -31,8 +31,7 @@ a { color: inherit; }
   position: sticky; top: 0; z-index: 10;
   display: flex; justify-content: space-between; align-items: center;
   padding: 18px 24px;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.97);
   border-bottom: 1px solid var(--line);
 }
 .logo { font-weight: 700; text-decoration: none; letter-spacing: -0.02em; }
@@ -153,7 +152,7 @@ a { color: inherit; }
 /* 첫 화면 아래쪽: 스크롤을 알려 주는 가는 선 */
 .hero { position: relative; }
 .scroll-cue { position: absolute; left: 50%; bottom: 28px; width: 1px; height: 48px; background: var(--line); overflow: hidden; }
-.scroll-cue::after { content: ""; position: absolute; inset: 0; background: var(--text); transform: translateY(-100%); animation: cue 2.4s var(--ease) 1.2s infinite; }
+.scroll-cue::after { content: ""; position: absolute; inset: 0; background: var(--text); transform: translateY(-100%); animation: cue 2.4s var(--ease) 1.2s 4; }   /* 4번만 (끝없이 돌리지 않음 → 배터리·CPU 절약) */
 @keyframes cue { 0% { transform: translateY(-100%); } 55% { transform: none; } 100% { transform: translateY(100%); } }
 
 /* 스크롤하면 나타나기 (script.js 가 .reveal 을 붙이고, 화면에 들어오면 .in 을 붙여요) */
