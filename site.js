@@ -10,9 +10,15 @@
     hero.lead:    제목 아래 한 줄 소개   hero.button: 버튼 글자 (누르면 작업물로 이동)
     비워 두면("") 그 부분은 화면에서 사라져요.
 
+  [메뉴와 섹션]
+    nav:      맨 위 메뉴 글자 (about=소개, work=작업물, contact=연락). 비우면 그 메뉴만 사라져요.
+    sections: 소개·작업물·연락 영역마다 show(true/false)와 title(영역 제목).
+              show: false 로 하면 그 영역과 메뉴 링크가 사이트에서 사라져요.
+
   [소개]
     about: 소개 글이에요. 따옴표 한 줄이 화면의 한 줄이에요.
            빈 줄을 넣고 싶으면 "" 를 한 줄 적으세요.
+    aboutImage: 소개 옆에 보이는 이미지 경로예요. (예: "images/logo.png", 비우면 안 보여요)
 
   [연락처]
     email: 이메일이에요. 비워 두면(email: "") 화면에서 안 보여요.
@@ -37,6 +43,12 @@ const SITE = {
     lead: "mv,amv",
     button: "works ↓",
   },
+  nav: { about: "소개", work: "작업물", contact: "연락" },
+  sections: {
+    about: { show: true, title: "About" },
+    work: { show: true, title: "Work" },
+    contact: { show: true, title: "Contact" },
+  },
   about: [
     "‘소리가 주는 감동을",
     "시각적으로 표현하는 디자이너’",
@@ -44,6 +56,7 @@ const SITE = {
     "(after effects,photoshop,premiere)",
     "2026 ~",
   ].join("\n"),
+  aboutImage: "images/logo.png",
   email: "marue2mv@gmail.com",
   links: [
     { label: "Instagram", url: "https://www.instagram.com/ma_ru_o2/" },

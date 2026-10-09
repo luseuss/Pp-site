@@ -18,6 +18,12 @@ const isHttpUrl = (u) => /^https?:\/\//i.test(String(u || '').trim());
 // 이메일: 공백, @ 이외의 특수문자(? & # < > 따옴표)가 들어간 주소는 걸러낸다
 const isEmail = (e) => /^[^\s@?&#<>"']+@[^\s@?&#<>"']+\.[^\s@?&#<>"']+$/.test(String(e || '').trim());
 
+// 이미지 경로: images/a.png 같은 상대 경로(.. 와 맨 앞 / 불가) 또는 http(s):// 주소만 허용
+const isSafeImage = (p) => {
+  const v = String(p || '').trim();
+  return /^https?:\/\/\S+$/i.test(v) || (/^[\p{L}\p{N}_\-./%]+$/u.test(v) && !v.includes('..') && !v.startsWith('/'));
+};
+
 // 값이 글자(빈 글자 포함)일 때만 덮어쓰고, 비어 있으면 그 요소를 숨긴다. (SITE 에 값이 없으면 index.html 기본 글자를 그대로 둠)
 function setText(el, value) {
   if (!el || typeof value !== 'string') return;
@@ -45,6 +51,40 @@ function renderSite() {
   setText(document.querySelector('.hero h1'), hero.title);     // 줄바꿈은 CSS(white-space: pre-line)로 보여줘요
   setText(document.querySelector('.hero .lead'), hero.lead);
   setText(document.querySelector('.hero .button'), hero.button);
+
+  // 메뉴 글자 · 섹션 제목 · 섹션 보이기/숨기기 (끈 섹션은 메뉴 링크도 같이 사라져요)
+  const nav = SITE.nav || {};
+  const sections = SITE.sections || {};
+  ['about', 'work', 'contact'].forEach((key) => {
+    const section = document.getElementById(key);
+    const cfg = sections[key] || {};
+    const show = cfg.show !== false;
+    if (section) {
+      section.hidden = !show;
+      setText(section.querySelector(':scope > h2'), cfg.title);
+    }
+    const link = document.querySelector(`[data-nav="${key}"]`);
+    if (link) {
+      if (typeof nav[key] === 'string') link.textContent = nav[key];
+      link.hidden = !show || link.textContent.trim() === '';
+    }
+  });
+  // 작업물 섹션이 꺼져 있으면 "작업물로 이동" 버튼도 숨긴다
+  const heroButton = document.querySelector('.hero .button');
+  if (heroButton && (SITE.sections || {}).work && SITE.sections.work.show === false) heroButton.hidden = true;
+
+  // 소개 옆 이미지 (비우면 숨김, 값이 없으면 index.html 기본 이미지 유지)
+  const aboutImg = document.getElementById('about-img');
+  if (aboutImg && typeof SITE.aboutImage === 'string') {
+    const src = SITE.aboutImage.trim();
+    if (src && isSafeImage(src)) {
+      aboutImg.src = src;
+      aboutImg.alt = name ? `${name} 소개 이미지` : '소개 이미지';
+      aboutImg.hidden = false;
+    } else {
+      aboutImg.hidden = true;
+    }
+  }
 
   if (aboutEl) aboutEl.textContent = SITE.about || '';   // 줄바꿈은 CSS(white-space: pre-line)로 보여줘요
 

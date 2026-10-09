@@ -13,6 +13,7 @@
   const SITE_FILE = 'site.js';
 
   const $ = (sel, el = document) => el.querySelector(sel);
+  const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
   const list = $('#list');
   const linksEl = $('#links');
   const tpl = $('#row-tpl');
@@ -25,6 +26,8 @@
   let site = emptySite();                              // 화면에서 편집 중인 사이트 정보 (이름·첫 화면·소개·연락처)
   let baseline = { works: '', site: '' };              // 불러온/저장한 직후의 내용(JSON) — 변경 여부 비교용
   let remote = { works: null, site: null };            // { sha, text } GitHub 에 있는 파일
+  const pendingUploads = new Map();                    // 아직 GitHub 에 안 올린 이미지: 경로 → { blob }
+  const previews = new Map();                          // 미리보기용: 경로 → blob 주소 (사이트에 올라가기 전에도 보이게)
 
   // 사이트 정보의 기본값 = 지금 사이트에 보이는 문구.
   // 옛 site.js 처럼 이 값들이 없는 파일을 불러와도 문구가 비워지지 않도록 이 값으로 채워요.
@@ -32,13 +35,22 @@
     name: 'MaRu_2',
     tagline: '영상 편집 포트폴리오',
     hero: { eyebrow: 'VIDEO EDITOR', title: '소리가 주는 감동을\n시각적으로 표현하자', lead: 'mv,amv', button: 'works ↓' },
+    nav: { about: '소개', work: '작업물', contact: '연락' },
+    sections: { about: { show: true, title: 'About' }, work: { show: true, title: 'Work' }, contact: { show: true, title: 'Contact' } },
+    aboutImage: 'images/logo.png',
   };
+  const SECTION_KEYS = ['about', 'work', 'contact'];
   function emptySite() {
-    return { name: '', tagline: '', hero: { eyebrow: '', title: '', lead: '', button: '' }, about: '', email: '', links: [] };
+    return {
+      name: '', tagline: '', hero: { eyebrow: '', title: '', lead: '', button: '' },
+      nav: { about: '', work: '', contact: '' },
+      sections: { about: { show: true, title: '' }, work: { show: true, title: '' }, contact: { show: true, title: '' } },
+      about: '', aboutImage: '', email: '', links: [],
+    };
   }
   // site.js 가 아직 없을 때의 시작 상태: 이름·첫 화면은 지금 문구, 나머지는 빈칸
   function newSite() {
-    return { ...emptySite(), name: SITE_DEFAULTS.name, tagline: SITE_DEFAULTS.tagline, hero: { ...SITE_DEFAULTS.hero } };
+    return structuredClone({ ...emptySite(), ...SITE_DEFAULTS, about: '', email: '', links: [] });
   }
 
   // ---------- 유틸 ----------
@@ -59,12 +71,67 @@
   const isHttpUrl = (u) => /^https?:\/\//i.test(String(u || '').trim());
   const isEmail = (e) => /^[^\s@?&#<>"']+@[^\s@?&#<>"']+\.[^\s@?&#<>"']+$/.test(String(e || '').trim());
 
+  // 이미지 경로: images/a.png 같은 상대 경로(.. 와 맨 앞 / 불가) 또는 http(s):// 주소만 허용 (script.js 와 같은 규칙)
+  const isSafeImage = (p) => {
+    const v = String(p || '').trim();
+    return /^https?:\/\/\S+$/i.test(v) || (/^[\p{L}\p{N}_\-./%]+$/u.test(v) && !v.includes('..') && !v.startsWith('/'));
+  };
+
   const b64decode = (b64) => new TextDecoder().decode(Uint8Array.from(atob(b64.replace(/\s/g, '')), (c) => c.charCodeAt(0)));
   const b64encode = (str) => {
     let bin = '';
     new TextEncoder().encode(str).forEach((b) => { bin += String.fromCharCode(b); });
     return btoa(bin);
   };
+
+  // ---------- 이미지: 줄이기 / 올릴 목록에 담기 ----------
+  const IMG_EXT = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'image/gif': 'gif' };
+  const MAX_UPLOAD = 5 * 1024 * 1024;   // 올릴 파일 한 개 최대 크기
+
+  const blobToB64 = async (blob) => {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  };
+
+  // 큰 이미지는 긴 변이 maxSide 이하가 되게 줄이고(png·webp 는 투명 유지), gif 는 움직임을 지키려고 그대로 올려요.
+  async function prepareImage(file, maxSide) {
+    const ext = IMG_EXT[file.type];
+    if (!ext) throw new Error('png, jpg, webp, gif 이미지만 올릴 수 있어요.');
+    if (file.size > 20 * 1024 * 1024) throw new Error('이미지가 너무 커요. (20MB 이하만 가능해요)');
+    if (ext === 'gif') {
+      if (file.size > MAX_UPLOAD) throw new Error('gif 는 5MB 이하만 올릴 수 있어요.');
+      return { blob: file, ext };
+    }
+    let bmp;
+    try { bmp = await createImageBitmap(file); } catch (e) { throw new Error('이미지를 읽을 수 없어요. 다른 파일을 골라 주세요.'); }
+    const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
+    let blob = file;
+    if (scale < 1 || file.size > 1.5 * 1024 * 1024) {
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(bmp.width * scale));
+      canvas.height = Math.max(1, Math.round(bmp.height * scale));
+      canvas.getContext('2d').drawImage(bmp, 0, 0, canvas.width, canvas.height);
+      const out = await new Promise((resolve) => canvas.toBlob(resolve, file.type, 0.88));
+      if (out && out.size < file.size) blob = out;   // 줄였는데 더 커지면 원본 유지
+    }
+    if (bmp.close) bmp.close();
+    if (blob.size > MAX_UPLOAD) throw new Error('이미지가 아직 너무 커요. 더 작은 이미지를 골라 주세요.');
+    return { blob, ext };
+  }
+
+  // 이미지를 줄여서 "올릴 목록"에 담고 경로를 돌려준다. (실제 업로드는 GitHub에 저장할 때)
+  async function stageImage(file, folder, maxSide) {
+    const { blob, ext } = await prepareImage(file, maxSide);
+    const base = (file.name || '').replace(/\.[^.]*$/, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 24) || 'image';
+    const path = `${folder}/${base}-${Date.now().toString(36)}.${ext}`;
+    pendingUploads.set(path, { blob });
+    previews.set(path, URL.createObjectURL(blob));
+    return { path, bytes: blob.size };
+  }
+  const kb = (n) => (n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)}MB` : `${Math.max(1, Math.round(n / 1024))}KB`);
+  const previewSrc = (path) => previews.get(path) || path;
 
   function setMsg(text, kind = '') {
     msg.textContent = text;
@@ -178,12 +245,9 @@
   function toWorks() {
     return items.map((it, i) => {
       const o = { order: i + 1 };
-      if (it.type === 'mp4') {
-        o.src = it.src.trim();
-        if (it.thumb.trim()) o.thumb = it.thumb.trim();
-      } else {
-        o.url = it.url.trim();
-      }
+      if (it.type === 'mp4') o.src = it.src.trim();
+      else o.url = it.url.trim();
+      if (it.thumb.trim()) o.thumb = it.thumb.trim();   // 비우면 YouTube 는 자동 썸네일
       o.title = it.title.trim();
       o.meta = it.meta.trim();
       if (it.tags.length) o.tags = [...it.tags];
@@ -238,7 +302,13 @@
         lead: str(h.lead, SITE_DEFAULTS.hero.lead),
         button: str(h.button, SITE_DEFAULTS.hero.button),
       },
+      nav: Object.fromEntries(SECTION_KEYS.map((k) => [k, str(s.nav && s.nav[k], SITE_DEFAULTS.nav[k])])),
+      sections: Object.fromEntries(SECTION_KEYS.map((k) => {
+        const c = (s.sections && s.sections[k]) || {};
+        return [k, { show: typeof c.show === 'boolean' ? c.show : true, title: str(c.title, SITE_DEFAULTS.sections[k].title) }];
+      })),
       about: String(s.about || ''),
+      aboutImage: str(s.aboutImage, SITE_DEFAULTS.aboutImage),
       email: String(s.email || ''),
       links: (Array.isArray(s.links) ? s.links : []).map((l) => ({ label: String((l && l.label) || ''), url: String((l && l.url) || '') })),
     };
@@ -258,7 +328,10 @@
         lead: site.hero.lead.trim(),
         button: site.hero.button.trim(),
       },
+      nav: Object.fromEntries(SECTION_KEYS.map((k) => [k, site.nav[k].trim()])),
+      sections: Object.fromEntries(SECTION_KEYS.map((k) => [k, { show: !!site.sections[k].show, title: site.sections[k].title.trim() }])),
       about: cleanLines(site.about),
+      aboutImage: site.aboutImage.trim(),
       email: site.email.trim(),
       links: site.links
         .map((l) => ({ label: l.label.trim(), url: l.url.trim() }))
@@ -268,7 +341,8 @@
 
   const SITE_HEADER = `/*
   ★ 사이트 정보 (이름 · 첫 화면 · 소개 · 연락처) — 관리 페이지(admin.html)에서 고치거나, 여기를 직접 고쳐도 돼요 ★
-  name/tagline: 사이트 이름과 탭 제목 설명, hero: 첫 화면 문구, about: 소개 글,
+  name/tagline: 사이트 이름과 탭 제목 설명, hero: 첫 화면 문구, nav/sections: 메뉴와 영역(보이기·제목),
+  about/aboutImage: 소개 글과 이미지,
   email: 이메일, links: 링크 목록 (label=이름, url=주소). 따옴표 한 줄이 화면의 한 줄이에요.
 */
 
@@ -296,7 +370,12 @@
     lead: ${q(s.hero.lead)},
     button: ${q(s.hero.button)},
   },
+  nav: { ${SECTION_KEYS.map((k) => `${k}: ${q(s.nav[k])}`).join(', ')} },
+  sections: {
+${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s.sections[k].title)} },`).join('\n')}
+  },
   about: ${multi(s.about, '  ')},
+  aboutImage: ${q(s.aboutImage)},
   email: ${q(s.email)},
   links: ${links},
 };
@@ -338,11 +417,11 @@
     const box = $('.thumb', li);
     box.textContent = '';
     let src = '';
-    if (it.type === 'youtube') {
+    if (it.thumb.trim()) {
+      src = previewSrc(it.thumb.trim());
+    } else if (it.type === 'youtube') {
       const id = getYouTubeId(it.url);
       if (id) src = `https://img.youtube.com/vi/${encodeURIComponent(id)}/mqdefault.jpg`;
-    } else if (it.thumb.trim()) {
-      src = it.thumb.trim();
     }
     if (src) {
       const img = document.createElement('img');
@@ -369,7 +448,7 @@
       const sync = () => {
         $('.g-url', li).hidden = it.type !== 'youtube';
         $('.g-src', li).hidden = it.type !== 'mp4';
-        $('.g-thumb', li).hidden = it.type !== 'mp4';
+        $('.l-thumb', li).textContent = it.type === 'youtube' ? '썸네일 이미지 (선택 · 비우면 YouTube 썸네일을 자동으로 써요)' : '썸네일 이미지 (선택)';
         updatePreview(li, it);
       };
       const type = $('.f-type', li);
@@ -380,6 +459,23 @@
       bind('.f-thumb', 'thumb', () => updatePreview(li, it));
       bind('.f-title', 'title');
       bind('.f-meta', 'meta');
+      // 썸네일 이미지 올리기 / 지우기
+      const thumbInput = $('.f-thumb', li), thumbFile = $('.file-thumb', li);
+      $('.up-thumb', li).addEventListener('click', () => thumbFile.click());
+      thumbFile.addEventListener('change', async () => {
+        const f = thumbFile.files[0];
+        thumbFile.value = '';
+        if (!f) return;
+        try {
+          const { path, bytes } = await stageImage(f, 'thumbs', 1280);
+          it.thumb = path;
+          thumbInput.value = path;
+          updatePreview(li, it);
+          updateDirty();
+          setMsg(`썸네일 이미지를 준비했어요. (${kb(bytes)}) 저장할 때 같이 올라가요.`, 'ok');
+        } catch (e) { setMsg(e.message, 'err'); }
+      });
+      $('.clr-thumb', li).addEventListener('click', () => { it.thumb = ''; thumbInput.value = ''; updatePreview(li, it); updateDirty(); });
       const tagsInput = $('.f-tags', li);
       tagsInput.value = it.tags.join(', ');
       tagsInput.addEventListener('input', () => { it.tags = parseTags(tagsInput.value); updateDirty(); });
@@ -447,8 +543,29 @@
     $('#f-lead').value = site.hero.lead;
     $('#f-button').value = site.hero.button;
     $('#f-about').value = site.about;
+    $('#f-about-image').value = site.aboutImage;
+    updateAboutPreview();
     $('#f-email').value = site.email;
+    $$('.secrow[data-sec]').forEach((row) => {
+      const k = row.dataset.sec;
+      $('.s-show', row).checked = site.sections[k].show;
+      $('.s-nav', row).value = site.nav[k];
+      $('.s-title', row).value = site.sections[k].title;
+    });
     renderLinks();
+  }
+
+  function updateAboutPreview() {
+    const box = $('#about-prev');
+    box.textContent = '';
+    const path = site.aboutImage.trim();
+    if (!path) { box.textContent = '이미지 없음'; return; }
+    const img = document.createElement('img');
+    img.alt = '';
+    img.src = previewSrc(path);
+    img.style.objectFit = 'contain';
+    img.onerror = () => { box.textContent = '미리보기 없음'; };
+    box.appendChild(img);
   }
 
   function renderLinks() {
@@ -496,7 +613,12 @@
       if (it.type === 'mp4' && !it.src.trim()) return { tab: 'works', text: `${n}: mp4 파일 경로를 적어 주세요.` };
       if (!it.title.trim()) return { tab: 'works', text: `${n}: 제목을 적어 주세요.` };
     }
+    for (let i = 0; i < items.length; i++) {
+      const t = items[i].thumb.trim();
+      if (t && !isSafeImage(t)) return { tab: 'works', text: `${i + 1}번 영상: 썸네일 경로가 올바르지 않아요. (예: thumbs/my-work.jpg)` };
+    }
     const s = toSite();
+    if (s.aboutImage && !isSafeImage(s.aboutImage)) return { tab: 'site', text: '소개 이미지 경로가 올바르지 않아요. (예: images/logo.png)' };
     if (!s.name) return { tab: 'site', text: '사이트 이름을 적어 주세요. (맨 위 로고와 탭 제목에 쓰여요)' };
     if (s.email && !isEmail(s.email)) return { tab: 'site', text: '이메일 주소가 올바르지 않아요. (예: name@example.com)' };
     for (let i = 0; i < s.links.length; i++) {
@@ -526,6 +648,7 @@
   async function load() {
     readSettings();
     setMsg('불러오는 중…');
+    pendingUploads.clear();
     const problems = [];
 
     // 영상 (works.js)
@@ -619,6 +742,14 @@
     const saved = [];
     const cancelled = [];
     try {
+      // 이미지: 아직 안 올렸고 지금도 쓰이는 것만 먼저 올린다 (글이 가리키는 파일이 먼저 있어야 해서)
+      const used = new Set([...items.map((it) => it.thumb.trim()), site.aboutImage.trim()]);
+      const todo = [...pendingUploads].filter(([path]) => used.has(path));
+      for (const [path, up] of todo) {
+        await api('PUT', path, { message: '관리 페이지에서 이미지 올리기', content: await blobToB64(up.blob), branch: settings.branch });
+        pendingUploads.delete(path);
+      }
+      if (todo.length) saved.push(`이미지 ${todo.length}개`);
       if (d.works) {
         const ok = await saveFile(WORKS_FILE, 'works', (old) => buildText(toWorks(), old), snapWorks, '관리 페이지에서 작업물 수정');
         (ok ? saved : cancelled).push('영상');
@@ -649,7 +780,8 @@
     box.hidden = false;
     box.open = true;
     box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-    setMsg('아래에서 파일별 "복사"를 누르세요. 해당 파일의 내용을 전부 지우고 붙여넣어 저장하면 돼요.');
+    const pend = pendingUploads.size ? ` (이미지 ${pendingUploads.size}개는 코드 복사로 올릴 수 없어요. 토큰을 넣고 "GitHub에 저장"을 쓰거나, 이미지 파일을 저장소의 해당 폴더에 직접 넣으세요.)` : '';
+    setMsg(`아래에서 파일별 "복사"를 누르세요. 해당 파일의 내용을 전부 지우고 붙여넣어 저장하면 돼요.${pend}`);
   }
 
   async function copyArea(id, name) {
@@ -688,7 +820,33 @@
     ['#f-lead', (v) => { site.hero.lead = v; }],
     ['#f-button', (v) => { site.hero.button = v; }],
     ['#f-about', (v) => { site.about = v; }],
+    ['#f-about-image', (v) => { site.aboutImage = v; updateAboutPreview(); }],
   ].forEach(([sel, set]) => $(sel).addEventListener('input', (e) => { set(e.target.value); updateDirty(); }));
+
+  // 메뉴와 섹션 (보이기 / 메뉴 글자 / 영역 제목)
+  $$('.secrow[data-sec]').forEach((row) => {
+    const k = row.dataset.sec;
+    $('.s-show', row).addEventListener('change', (e) => { site.sections[k].show = e.target.checked; updateDirty(); });
+    $('.s-nav', row).addEventListener('input', (e) => { site.nav[k] = e.target.value; updateDirty(); });
+    $('.s-title', row).addEventListener('input', (e) => { site.sections[k].title = e.target.value; updateDirty(); });
+  });
+
+  // 소개 이미지 올리기 / 없애기
+  $('#up-about').addEventListener('click', () => $('#file-about').click());
+  $('#file-about').addEventListener('change', async (e) => {
+    const f = e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    try {
+      const { path, bytes } = await stageImage(f, 'images', 1200);
+      site.aboutImage = path;
+      $('#f-about-image').value = path;
+      updateAboutPreview();
+      updateDirty();
+      setMsg(`소개 이미지를 준비했어요. (${kb(bytes)}) 저장할 때 같이 올라가요.`, 'ok');
+    } catch (err) { setMsg(err.message, 'err'); }
+  });
+  $('#clr-about').addEventListener('click', () => { site.aboutImage = ''; $('#f-about-image').value = ''; updateAboutPreview(); updateDirty(); });
   $('#f-email').addEventListener('input', (e) => { site.email = e.target.value; updateDirty(); });
   $('#save').addEventListener('click', save);
   $('#copy').addEventListener('click', showCode);

@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  관리 페이지: 영상과 사이트 정보(이름·첫 화면·소개·연락처)를 화면에서 고치고, 저장하면 GitHub의 works.js / site.js 를 고쳐요.
+  관리 페이지: 영상과 사이트 정보(이름·메뉴·첫 화면·소개·연락처·이미지)를 화면에서 고치고, 저장하면 GitHub의 works.js / site.js 를 고쳐요.
   주소: 사이트주소/admin.html  (검색에 안 나오게 noindex 처리, 저장은 내 토큰이 있어야만 가능)
 -->
 <html lang="ko">
@@ -72,6 +72,12 @@
     .linkrow .del { color: var(--danger); }
     #add-link { width: 100%; padding: 10px; border-style: dashed; }
     .codehead { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; }
+    .secrow { display: grid; grid-template-columns: 150px 1fr 1fr; gap: 10px; align-items: center; margin-bottom: 8px; }
+    .secrow.head span { font-size: .8rem; color: var(--muted); }
+    .imgrow { display: grid; grid-template-columns: 130px 1fr; gap: 14px; align-items: start; }
+    .imgctl { display: grid; gap: 8px; }
+    .btnrow { display: flex; gap: 8px; flex-wrap: wrap; }
+    .thumbrow { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; }
     .about-input { height: 160px; font: inherit; line-height: 1.6; margin-top: 0; resize: vertical; }
     textarea { width: 100%; height: 220px; font: .8rem/1.5 ui-monospace, Consolas, monospace; padding: 10px; border: 1px solid var(--line); border-radius: 6px; margin-top: 10px; }
     [hidden] { display: none !important; }
@@ -80,6 +86,8 @@
       .num { padding: 0; } .acts { grid-template-columns: repeat(3, 1fr); }
       .grid2 { grid-template-columns: 1fr; } .row2 { grid-template-columns: 1fr; }
       .linkrow { grid-template-columns: 1fr; } .linkrow .btns { justify-content: flex-end; }
+      .secrow { grid-template-columns: 1fr; } .secrow.head { display: none; }
+      .imgrow { grid-template-columns: 1fr; } .thumbrow { grid-template-columns: 1fr 1fr; } .thumbrow input { grid-column: 1 / -1; }
     }
   </style>
 </head>
@@ -91,7 +99,7 @@
   </header>
 
   <main class="wrap">
-    <p class="hint"><b>영상</b> 탭에서는 영상을 추가·수정·삭제하고 카테고리(MV, AMV 등)와 순서(↑↓)를 바꿔요. <b>사이트 정보</b> 탭에서는 이름, 첫 화면 문구, 소개 글, 이메일, SNS 링크를 고쳐요. 다 고친 뒤 아래 <b>GitHub에 저장</b>을 누르면 바뀐 부분만 저장되고, 1~2분 뒤 사이트에 반영돼요.</p>
+    <p class="hint"><b>영상</b> 탭에서는 영상을 추가·수정·삭제하고 카테고리(MV, AMV 등)와 순서(↑↓)를 바꿔요. <b>사이트 정보</b> 탭에서는 이름, 메뉴와 섹션(보이기/숨기기), 첫 화면 문구, 소개 글과 이미지, 이메일, SNS 링크를 고쳐요. 이미지는 고른 뒤 <b>GitHub에 저장</b>을 누를 때 같이 올라가요. 다 고친 뒤 아래 <b>GitHub에 저장</b>을 누르면 바뀐 부분만 저장되고, 1~2분 뒤 사이트에 반영돼요.</p>
 
     <details id="settings">
       <summary>연결 설정 (처음 한 번만)</summary>
@@ -139,6 +147,26 @@
         <input id="f-tagline" autocomplete="off" />
       </div>
       <div class="panel">
+        <h2>메뉴와 섹션</h2>
+        <p class="help" style="margin:0 0 10px">"영역"을 끄면 그 영역과 맨 위 메뉴 링크가 사이트에서 사라져요. 메뉴 글자를 비우면 그 메뉴만 사라지고, 영역 제목을 비우면 제목만 사라져요.</p>
+        <div class="secrow head"><span></span><span>메뉴 글자</span><span>영역 제목</span></div>
+        <div class="secrow" data-sec="about">
+          <label class="check"><input type="checkbox" class="s-show" aria-label="소개 영역 보이기" /> 소개 영역</label>
+          <input class="s-nav" aria-label="소개 메뉴 글자" autocomplete="off" />
+          <input class="s-title" aria-label="소개 영역 제목" autocomplete="off" />
+        </div>
+        <div class="secrow" data-sec="work">
+          <label class="check"><input type="checkbox" class="s-show" aria-label="작업물 영역 보이기" /> 작업물 영역</label>
+          <input class="s-nav" aria-label="작업물 메뉴 글자" autocomplete="off" />
+          <input class="s-title" aria-label="작업물 영역 제목" autocomplete="off" />
+        </div>
+        <div class="secrow" data-sec="contact">
+          <label class="check"><input type="checkbox" class="s-show" aria-label="연락 영역 보이기" /> 연락 영역</label>
+          <input class="s-nav" aria-label="연락 메뉴 글자" autocomplete="off" />
+          <input class="s-title" aria-label="연락 영역 제목" autocomplete="off" />
+        </div>
+      </div>
+      <div class="panel">
         <h2>첫 화면</h2>
         <label for="f-eyebrow">작은 글씨 (제목 위, 비우면 안 보여요)</label>
         <input id="f-eyebrow" autocomplete="off" />
@@ -153,6 +181,19 @@
         <h2>소개</h2>
         <label for="f-about">소개 글 (줄바꿈이 사이트에도 그대로 보여요)</label>
         <textarea id="f-about" class="about-input"></textarea>
+        <label style="margin-top:14px">소개 옆 이미지</label>
+        <div class="imgrow">
+          <div class="thumb" id="about-prev" style="aspect-ratio:1"></div>
+          <div class="imgctl">
+            <input id="f-about-image" aria-label="소개 이미지 경로" placeholder="images/logo.png" autocomplete="off" />
+            <div class="btnrow">
+              <button type="button" id="up-about">이미지 올리기</button>
+              <button type="button" id="clr-about">이미지 없애기</button>
+            </div>
+            <p class="help" style="margin:0">png, jpg, webp, gif · 큰 이미지는 자동으로 줄여서 올려요. 고른 이미지는 <b>GitHub에 저장</b>을 누를 때 같이 올라가요. 경로를 직접 적어도 돼요.</p>
+          </div>
+        </div>
+        <input type="file" id="file-about" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
       </div>
       <div class="panel">
         <h2>연락처</h2>
@@ -192,7 +233,13 @@
           <div class="g-url"><label>YouTube 주소</label><input class="f-url" placeholder="https://youtu.be/..." /></div>
           <div class="g-src" hidden><label>mp4 파일 경로</label><input class="f-src" placeholder="videos/my-work.mp4" /></div>
         </div>
-        <div class="g-thumb" hidden><label>썸네일 이미지 경로 (선택)</label><input class="f-thumb" placeholder="thumbs/my-work.jpg" /></div>
+        <div class="g-thumb"><label class="l-thumb">썸네일 이미지 (선택)</label>
+          <div class="thumbrow">
+            <input class="f-thumb" placeholder="thumbs/my-work.jpg" />
+            <button type="button" class="up-thumb">이미지 올리기</button>
+            <button type="button" class="clr-thumb">지우기</button>
+          </div>
+          <input type="file" class="file-thumb" accept="image/png,image/jpeg,image/webp,image/gif" hidden /></div>
         <div><label>제목</label><input class="f-title" /></div>
         <div><label>설명 (예: 2026 · 모션 그래픽)</label><input class="f-meta" /></div>
         <div><label>카테고리 (쉼표로 구분, 예: MV, AMV)</label><input class="f-tags" placeholder="MV, AMV" />
