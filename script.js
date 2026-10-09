@@ -15,6 +15,7 @@ if (typeof SITE !== 'undefined' && SITE.heroMotion === false) root.classList.add
 // 스크롤하면 제목 흐려지기 / 마우스 기울기를 따로 끄는 경우
 if (typeof SITE !== 'undefined' && SITE.heroFade === false) root.classList.add('no-hero-fade');
 if (typeof SITE !== 'undefined' && SITE.tilt === false) root.classList.add('no-tilt');
+let featuredWork = null;   // 대표 영상(featured: true) — 첫 화면 배경 재생에도 써요
 const animationsOn = () => !root.classList.contains('no-anim');
 
 const modal = document.getElementById('modal');
@@ -224,6 +225,7 @@ if (typeof WORKS !== 'undefined') {
     label.textContent = '대표 영상';
     featuredEl.append(label, featCard);
     featuredEl.hidden = false;
+    featuredWork = feat;
   }
 
   const cards = [];
@@ -396,6 +398,49 @@ document.addEventListener('keydown', (e) => {
       new IntersectionObserver((entries) => { heroSeen = entries[entries.length - 1].isIntersecting; sync(); }).observe(heroEl);
     }
     document.addEventListener('visibilitychange', sync);
+  }
+
+  // 3-2) 대표 영상을 첫 화면 글자 뒤에서 소리 없이 재생.
+  //      화면 밖이거나 탭이 가려지면 영상 자체를 없애서(iframe/video 제거) 메모리·데이터·배터리를 아끼고, 다시 보이면 새로 만든다.
+  const videoBox = heroEl && heroEl.querySelector('.hero-video');
+  const saveData = navigator.connection && navigator.connection.saveData;
+  if (videoBox && featuredWork && !(typeof SITE !== 'undefined' && SITE.heroVideo === false) && !saveData) {
+    let heroSeen = true;
+    let player = null;
+    const start = () => {
+      let el;
+      if (featuredWork.url) {
+        const id = getYouTubeId(featuredWork.url);
+        if (!id) return;
+        el = document.createElement('iframe');
+        el.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=1&controls=0&loop=1&playlist=${encodeURIComponent(id)}&playsinline=1&modestbranding=1&rel=0&disablekb=1&iv_load_policy=3`;
+        el.allow = 'autoplay; encrypted-media';
+        el.referrerPolicy = 'strict-origin-when-cross-origin';
+        el.addEventListener('load', () => { if (player === el) heroEl.classList.add('has-video'); });
+      } else {
+        el = document.createElement('video');
+        el.muted = true; el.loop = true; el.autoplay = true; el.playsInline = true;
+        el.src = featuredWork.src;
+        el.addEventListener('playing', () => { if (player === el) heroEl.classList.add('has-video'); });
+      }
+      el.tabIndex = -1;
+      player = el;
+      videoBox.appendChild(el);
+    };
+    const stop = () => {
+      if (!player) return;
+      if (player.tagName === 'IFRAME') player.src = 'about:blank';
+      else { player.pause(); player.removeAttribute('src'); player.load(); }
+      player.remove();
+      player = null;
+      heroEl.classList.remove('has-video');
+    };
+    const sync = () => { if (!document.hidden && heroSeen) { if (!player) start(); } else stop(); };
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver((entries) => { heroSeen = entries[entries.length - 1].isIntersecting; sync(); }).observe(heroEl);
+    }
+    document.addEventListener('visibilitychange', sync);
+    sync();
   }
 
   // 4) 스크롤하면 맨 위 메뉴에 그림자

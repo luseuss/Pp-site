@@ -10,6 +10,7 @@
                 (방문자가 운영체제에서 "동작 줄이기"를 켜 두었으면 true 여도 자동으로 꺼져요.)
     heroMotion: 첫 화면 배경에 천천히 퍼지는 둥근 파동. true 면 보이고 false 면 사라져요. (animations 가 false 면 같이 꺼져요.)
     heroFade:   스크롤하면 첫 화면 글자가 위로 올라가며 서서히 사라지는 효과. (true/false)
+    heroVideo:  대표 영상(관리 페이지 "대표 영상으로")을 첫 화면 글자 뒤에서 소리 없이 재생. (true/false, 화면 밖이거나 탭이 가려지면 자동으로 멈추고, 데이터 절약 모드에서는 재생하지 않아요)
     tilt:       버튼과 영상 카드가 마우스를 따라 살짝 기울어지는 효과. (true/false, 터치 기기에서는 자동으로 꺼져요)
 
   [첫 화면]
@@ -45,6 +46,7 @@ const SITE = {
   heroMotion: true,
   heroFade: true,
   tilt: true,
+  heroVideo: true,
   hero: {
     eyebrow: "VIDEO EDITOR",
     title: [

@@ -192,6 +192,19 @@ main:focus { outline: none; }   /* 건너뛰기 링크로 옮겨 간 본문에�
 /* 첫 화면이 화면 밖이거나 탭이 가려져 있으면 멈춤 (script.js 가 .bg-paused 를 붙여요) */
 .hero.bg-paused .hero-bg span { animation-play-state: paused; }
 
+/* 첫 화면 배경 영상: 글자 뒤, 흰 막을 씌워 글자가 또렷하게 (영상이 준비되면 .has-video 가 붙어 서서히 나타나요) */
+.hero-video { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.hero-video iframe, .hero-video video {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 177.78vh; min-width: 100%; height: 56.25vw; min-height: 100%;   /* 화면을 꽉 채우도록 (cover) */
+  border: 0; object-fit: cover; opacity: 0; transition: opacity 1.2s;
+}
+.hero.has-video .hero-video iframe, .hero.has-video .hero-video video { opacity: 1; }
+.hero-video::after { content: ""; position: absolute; inset: 0; background: rgba(255, 255, 255, 0.72); }
+.hero.has-video .hero-bg { display: none; }   /* 영상이 나오면 파동은 끔 */
+.hero.has-video .eyebrow, .hero.has-video .lead { color: var(--text); }   /* 영상 위에서도 글자 대비 유지 */
+html.no-anim .hero-video { display: none; }
+
 /* 스크롤하면 나타나기 (script.js 가 .reveal 을 붙이고, 화면에 들어오면 .in 을 붙여요) */
 .js .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.8s var(--ease), transform 0.8s var(--ease); transition-delay: var(--d, 0ms); }
 .js .reveal.in { opacity: 1; transform: none; }
