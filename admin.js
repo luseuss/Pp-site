@@ -1,6 +1,6 @@
 /*
   관리 페이지 동작 (admin.html)
-  1) GitHub 의 works.js(영상) · site.js(소개·연락처)를 불러와서 화면에 보여주고
+  1) GitHub 의 works.js(영상) · site.js(이름·첫 화면·소개·연락처)를 불러와서 화면에 보여주고
   2) 수정한 내용을 각 파일 형식으로 만들어서
   3) GitHub API 로 저장(커밋)해요. (토큰이 있어야 저장 가능, 바뀐 파일만 저장)
 */
@@ -22,9 +22,24 @@
 
   let settings = { ...DEFAULTS };
   let items = [];                                      // 화면에서 편집 중인 영상 목록
-  let site = { about: '', email: '', links: [] };      // 화면에서 편집 중인 소개·연락처
+  let site = emptySite();                              // 화면에서 편집 중인 사이트 정보 (이름·첫 화면·소개·연락처)
   let baseline = { works: '', site: '' };              // 불러온/저장한 직후의 내용(JSON) — 변경 여부 비교용
   let remote = { works: null, site: null };            // { sha, text } GitHub 에 있는 파일
+
+  // 사이트 정보의 기본값 = 지금 사이트에 보이는 문구.
+  // 옛 site.js 처럼 이 값들이 없는 파일을 불러와도 문구가 비워지지 않도록 이 값으로 채워요.
+  const SITE_DEFAULTS = {
+    name: 'MaRu_2',
+    tagline: '영상 편집 포트폴리오',
+    hero: { eyebrow: 'VIDEO EDITOR', title: '소리가 주는 감동을\n시각적으로 표현하자', lead: 'mv,amv', button: 'works ↓' },
+  };
+  function emptySite() {
+    return { name: '', tagline: '', hero: { eyebrow: '', title: '', lead: '', button: '' }, about: '', email: '', links: [] };
+  }
+  // site.js 가 아직 없을 때의 시작 상태: 이름·첫 화면은 지금 문구, 나머지는 빈칸
+  function newSite() {
+    return { ...emptySite(), name: SITE_DEFAULTS.name, tagline: SITE_DEFAULTS.tagline, hero: { ...SITE_DEFAULTS.hero } };
+  }
 
   // ---------- 유틸 ----------
   // script.js 의 getYouTubeId 와 같은 규칙 (관리 페이지는 script.js 를 불러오지 않아서 따로 둠)
@@ -212,17 +227,38 @@
   function parseSite(text) {
     const s = new Function(`${text}\nreturn SITE;`)();
     if (!s || typeof s !== 'object') throw new Error('site.js 형식이 올바르지 않아요.');
+    const str = (v, fallback) => (typeof v === 'string' ? v : fallback);   // 값이 없을(undefined) 때만 기본값
+    const h = s.hero && typeof s.hero === 'object' ? s.hero : {};
     return {
+      name: str(s.name, SITE_DEFAULTS.name),
+      tagline: str(s.tagline, SITE_DEFAULTS.tagline),
+      hero: {
+        eyebrow: str(h.eyebrow, SITE_DEFAULTS.hero.eyebrow),
+        title: str(h.title, SITE_DEFAULTS.hero.title),
+        lead: str(h.lead, SITE_DEFAULTS.hero.lead),
+        button: str(h.button, SITE_DEFAULTS.hero.button),
+      },
       about: String(s.about || ''),
       email: String(s.email || ''),
       links: (Array.isArray(s.links) ? s.links : []).map((l) => ({ label: String((l && l.label) || ''), url: String((l && l.url) || '') })),
     };
   }
 
-  // 화면 → 저장할 내용 (소개는 줄 끝 공백 정리, 이름·주소가 모두 빈 링크 줄은 버림)
+  // 여러 줄 글: 줄 끝 공백 정리, 앞뒤 빈 줄 제거
+  const cleanLines = (t) => t.replace(/\r\n?/g, '\n').split('\n').map((l) => l.trimEnd()).join('\n').trim();
+
+  // 화면 → 저장할 내용 (이름 칸들은 앞뒤 공백 정리, 이름·주소가 모두 빈 링크 줄은 버림)
   function toSite() {
     return {
-      about: site.about.replace(/\r\n?/g, '\n').split('\n').map((l) => l.trimEnd()).join('\n').trim(),
+      name: site.name.trim(),
+      tagline: site.tagline.trim(),
+      hero: {
+        eyebrow: site.hero.eyebrow.trim(),
+        title: cleanLines(site.hero.title),
+        lead: site.hero.lead.trim(),
+        button: site.hero.button.trim(),
+      },
+      about: cleanLines(site.about),
       email: site.email.trim(),
       links: site.links
         .map((l) => ({ label: l.label.trim(), url: l.url.trim() }))
@@ -231,8 +267,9 @@
   }
 
   const SITE_HEADER = `/*
-  ★ 소개 · 연락처 — 관리 페이지(admin.html)에서 고치거나, 여기를 직접 고쳐도 돼요 ★
-  about: 소개 글 (따옴표 한 줄이 화면의 한 줄), email: 이메일, links: 링크 목록 (label=이름, url=주소)
+  ★ 사이트 정보 (이름 · 첫 화면 · 소개 · 연락처) — 관리 페이지(admin.html)에서 고치거나, 여기를 직접 고쳐도 돼요 ★
+  name/tagline: 사이트 이름과 탭 제목 설명, hero: 첫 화면 문구, about: 소개 글,
+  email: 이메일, links: 링크 목록 (label=이름, url=주소). 따옴표 한 줄이 화면의 한 줄이에요.
 */
 
 `;
@@ -242,14 +279,28 @@
     const at = oldText ? oldText.indexOf('const SITE = {') : -1;
     const header = at > 0 ? oldText.slice(0, at) : SITE_HEADER;
     const q = JSON.stringify;
-    const aboutLines = s.about ? s.about.split('\n') : [];
-    const about = aboutLines.length
-      ? `[\n${aboutLines.map((l) => `    ${q(l)},`).join('\n')}\n  ].join("\\n")`
-      : '""';
+    // 여러 줄 글 → ["줄1", "줄2"].join("\n")  (파일에서 읽고 고치기 쉽게)
+    const multi = (text, pad) => {
+      const lines = text ? text.split('\n') : [];
+      return lines.length ? `[\n${lines.map((l) => `${pad}  ${q(l)},`).join('\n')}\n${pad}].join("\\n")` : '""';
+    };
     const links = s.links.length
       ? `[\n${s.links.map((l) => `    { label: ${q(l.label)}, url: ${q(l.url)} },`).join('\n')}\n  ]`
       : '[]';
-    return `${header}const SITE = {\n  about: ${about},\n  email: ${q(s.email)},\n  links: ${links},\n};\n`;
+    return `${header}const SITE = {
+  name: ${q(s.name)},
+  tagline: ${q(s.tagline)},
+  hero: {
+    eyebrow: ${q(s.hero.eyebrow)},
+    title: ${multi(s.hero.title, '    ')},
+    lead: ${q(s.hero.lead)},
+    button: ${q(s.hero.button)},
+  },
+  about: ${multi(s.about, '  ')},
+  email: ${q(s.email)},
+  links: ${links},
+};
+`;
   }
 
   // ---------- 화면: 공통 ----------
@@ -267,7 +318,7 @@
   function updateDirty() {
     const d = isDirty();
     const on = d.works || d.site;
-    const what = [d.works && '영상', d.site && '소개·연락처'].filter(Boolean).join(', ');
+    const what = [d.works && '영상', d.site && '사이트 정보'].filter(Boolean).join(', ');
     dirtyEl.textContent = on ? `● 저장 안 된 변경이 있어요 (${what})` : '변경 없음';
     dirtyEl.className = on ? 'on' : '';
     $('#reload').disabled = !on;
@@ -389,6 +440,12 @@
 
   // ---------- 화면: 소개 · 연락처 ----------
   function renderSitePanel() {
+    $('#f-name').value = site.name;
+    $('#f-tagline').value = site.tagline;
+    $('#f-eyebrow').value = site.hero.eyebrow;
+    $('#f-hero-title').value = site.hero.title;
+    $('#f-lead').value = site.hero.lead;
+    $('#f-button').value = site.hero.button;
     $('#f-about').value = site.about;
     $('#f-email').value = site.email;
     renderLinks();
@@ -440,6 +497,7 @@
       if (!it.title.trim()) return { tab: 'works', text: `${n}: 제목을 적어 주세요.` };
     }
     const s = toSite();
+    if (!s.name) return { tab: 'site', text: '사이트 이름을 적어 주세요. (맨 위 로고와 탭 제목에 쓰여요)' };
     if (s.email && !isEmail(s.email)) return { tab: 'site', text: '이메일 주소가 올바르지 않아요. (예: name@example.com)' };
     for (let i = 0; i < s.links.length; i++) {
       const l = s.links[i], n = `${i + 1}번 링크`;
@@ -489,12 +547,13 @@
       if (w.note) problems.push(`GitHub 에서 불러오지 못해서 사이트의 파일을 보여 줘요. (${w.note})`);
     }
 
-    // 소개 · 연락처 (site.js) — 아직 파일이 없으면(404) 빈 상태로 시작하고, 저장하면 새로 만들어요
+    // 사이트 정보 (site.js) — 아직 파일이 없으면(404) 빈 상태로 시작하고, 저장하면 새로 만들어요
     const s = await loadText(SITE_FILE);
-    site = { about: '', email: '', links: [] };
+    site = emptySite();
     remote.site = null;
     if (s.failed && s.status === 404 && !w.failed) {
       remote.site = { sha: '', text: '' };
+      site = newSite();
     } else if (s.failed) {
       problems.push(`site.js 를 불러오지 못했어요. (${s.note})`);
     } else {
@@ -512,7 +571,7 @@
     renderSitePanel();
     updateDirty();
     if (problems.length) setMsg([...new Set(problems)].join(' '), 'err');
-    else setMsg(`영상 ${items.length}개와 소개·연락처를 불러왔어요.`);
+    else setMsg(`영상 ${items.length}개와 사이트 정보를 불러왔어요.`);
   }
 
   // 한 파일을 저장 (최신 버전을 다시 받아 충돌을 확인한 뒤 커밋). 저장했으면 true.
@@ -565,8 +624,8 @@
         (ok ? saved : cancelled).push('영상');
       }
       if (d.site) {
-        const ok = await saveFile(SITE_FILE, 'site', (old) => buildSiteText(toSite(), old), snapSite, '관리 페이지에서 소개·연락처 수정');
-        (ok ? saved : cancelled).push('소개·연락처');
+        const ok = await saveFile(SITE_FILE, 'site', (old) => buildSiteText(toSite(), old), snapSite, '관리 페이지에서 사이트 정보 수정');
+        (ok ? saved : cancelled).push('사이트 정보');
       }
       updateDirty();
       if (cancelled.length) {
@@ -620,7 +679,16 @@
     const last = linksEl.lastElementChild;
     if (last) $('.l-label', last).focus();
   });
-  $('#f-about').addEventListener('input', (e) => { site.about = e.target.value; updateDirty(); });
+  // 입력칸 → site 값 연결 (칸 id 와 site 안의 위치)
+  [
+    ['#f-name', (v) => { site.name = v; }],
+    ['#f-tagline', (v) => { site.tagline = v; }],
+    ['#f-eyebrow', (v) => { site.hero.eyebrow = v; }],
+    ['#f-hero-title', (v) => { site.hero.title = v; }],
+    ['#f-lead', (v) => { site.hero.lead = v; }],
+    ['#f-button', (v) => { site.hero.button = v; }],
+    ['#f-about', (v) => { site.about = v; }],
+  ].forEach(([sel, set]) => $(sel).addEventListener('input', (e) => { set(e.target.value); updateDirty(); }));
   $('#f-email').addEventListener('input', (e) => { site.email = e.target.value; updateDirty(); });
   $('#save').addEventListener('click', save);
   $('#copy').addEventListener('click', showCode);

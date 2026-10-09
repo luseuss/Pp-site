@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  관리 페이지: 영상·소개·연락처를 화면에서 고치고, 저장하면 GitHub의 works.js / site.js 를 고쳐요.
+  관리 페이지: 영상과 사이트 정보(이름·첫 화면·소개·연락처)를 화면에서 고치고, 저장하면 GitHub의 works.js / site.js 를 고쳐요.
   주소: 사이트주소/admin.html  (검색에 안 나오게 noindex 처리, 저장은 내 토큰이 있어야만 가능)
 -->
 <html lang="ko">
@@ -65,6 +65,7 @@
     .tabs button[data-dirty="true"]::after { content: " ●"; color: var(--danger); font-size: .7em; vertical-align: middle; }
     .panel { border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
     .panel h2 { font-size: 1rem; margin-bottom: 12px; }
+    .panel label ~ label { margin-top: 12px; }
     #links { list-style: none; display: grid; gap: 8px; margin-bottom: 10px; }
     .linkrow { display: grid; grid-template-columns: 170px 1fr auto; gap: 8px; align-items: center; }
     .linkrow .btns { display: flex; gap: 6px; }
@@ -90,7 +91,7 @@
   </header>
 
   <main class="wrap">
-    <p class="hint"><b>영상</b> 탭에서는 영상을 추가·수정·삭제하고 카테고리(MV, AMV 등)와 순서(↑↓)를 바꿔요. <b>소개 · 연락처</b> 탭에서는 소개 글, 이메일, SNS 링크를 고쳐요. 다 고친 뒤 아래 <b>GitHub에 저장</b>을 누르면 바뀐 부분만 저장되고, 1~2분 뒤 사이트에 반영돼요.</p>
+    <p class="hint"><b>영상</b> 탭에서는 영상을 추가·수정·삭제하고 카테고리(MV, AMV 등)와 순서(↑↓)를 바꿔요. <b>사이트 정보</b> 탭에서는 이름, 첫 화면 문구, 소개 글, 이메일, SNS 링크를 고쳐요. 다 고친 뒤 아래 <b>GitHub에 저장</b>을 누르면 바뀐 부분만 저장되고, 1~2분 뒤 사이트에 반영돼요.</p>
 
     <details id="settings">
       <summary>연결 설정 (처음 한 번만)</summary>
@@ -121,7 +122,7 @@
 
     <div class="tabs" role="tablist">
       <button type="button" role="tab" id="tab-works" aria-selected="true" aria-controls="panel-works">영상</button>
-      <button type="button" role="tab" id="tab-site" aria-selected="false" aria-controls="panel-site">소개 · 연락처</button>
+      <button type="button" role="tab" id="tab-site" aria-selected="false" aria-controls="panel-site">사이트 정보</button>
     </div>
 
     <section id="panel-works" role="tabpanel" aria-labelledby="tab-works">
@@ -130,6 +131,24 @@
     </section>
 
     <section id="panel-site" role="tabpanel" aria-labelledby="tab-site" hidden>
+      <div class="panel">
+        <h2>이름</h2>
+        <label for="f-name">사이트 이름 (맨 위 로고, 브라우저 탭 제목, 맨 아래 © 문구에 쓰여요)</label>
+        <input id="f-name" autocomplete="off" />
+        <label for="f-tagline">탭 제목 설명 (이름 뒤에 붙어요. 예: "이름 | 영상 편집 포트폴리오")</label>
+        <input id="f-tagline" autocomplete="off" />
+      </div>
+      <div class="panel">
+        <h2>첫 화면</h2>
+        <label for="f-eyebrow">작은 글씨 (제목 위, 비우면 안 보여요)</label>
+        <input id="f-eyebrow" autocomplete="off" />
+        <label for="f-hero-title">큰 제목 (줄바꿈이 그대로 보여요)</label>
+        <textarea id="f-hero-title" class="about-input" style="height:92px"></textarea>
+        <label for="f-lead">한 줄 소개 (제목 아래, 비우면 안 보여요)</label>
+        <input id="f-lead" autocomplete="off" />
+        <label for="f-button">버튼 글자 (누르면 작업물로 이동해요, 비우면 버튼이 사라져요)</label>
+        <input id="f-button" autocomplete="off" />
+      </div>
       <div class="panel">
         <h2>소개</h2>
         <label for="f-about">소개 글 (줄바꿈이 사이트에도 그대로 보여요)</label>

@@ -18,8 +18,33 @@ const isHttpUrl = (u) => /^https?:\/\//i.test(String(u || '').trim());
 // 이메일: 공백, @ 이외의 특수문자(? & # < > 따옴표)가 들어간 주소는 걸러낸다
 const isEmail = (e) => /^[^\s@?&#<>"']+@[^\s@?&#<>"']+\.[^\s@?&#<>"']+$/.test(String(e || '').trim());
 
+// 값이 글자(빈 글자 포함)일 때만 덮어쓰고, 비어 있으면 그 요소를 숨긴다. (SITE 에 값이 없으면 index.html 기본 글자를 그대로 둠)
+function setText(el, value) {
+  if (!el || typeof value !== 'string') return;
+  el.textContent = value;
+  el.hidden = value.trim() === '';
+}
+
 function renderSite() {
   if (typeof SITE === 'undefined') return;
+
+  // 이름: 로고 · 탭 제목 · 푸터
+  const name = typeof SITE.name === 'string' ? SITE.name.trim() : '';
+  if (name) {
+    const logo = document.querySelector('.logo');
+    if (logo) logo.textContent = name;
+    const tagline = typeof SITE.tagline === 'string' ? SITE.tagline.trim() : '';
+    document.title = tagline ? `${name} | ${tagline}` : name;
+    const footer = document.querySelector('.site-footer');
+    if (footer) footer.textContent = `© ${new Date().getFullYear()} ${name}`;
+  }
+
+  // 첫 화면
+  const hero = SITE.hero || {};
+  setText(document.querySelector('.hero .eyebrow'), hero.eyebrow);
+  setText(document.querySelector('.hero h1'), hero.title);     // 줄바꿈은 CSS(white-space: pre-line)로 보여줘요
+  setText(document.querySelector('.hero .lead'), hero.lead);
+  setText(document.querySelector('.hero .button'), hero.button);
 
   if (aboutEl) aboutEl.textContent = SITE.about || '';   // 줄바꿈은 CSS(white-space: pre-line)로 보여줘요
 
