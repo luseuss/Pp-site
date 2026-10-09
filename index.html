@@ -38,16 +38,8 @@
       <h2>About</h2>
       <div class="about">
        <img class="about-img" src="images/logo.png" alt="MaRu_2 로고" />
-        <p>
-          ‘소리가 주는 감동을 <br />
-
-          시각적으로 표현하는 디자이너’ <br />
-
-          모션 그래픽 디자이너 MaRu_2 입니다.<br />
-          (after effects,photoshop,premiere)<br />
-           2026 ~
-        </p>
-        
+        <!-- 소개 글은 site.js 의 about 으로 채워져요. 고칠 때는 관리 페이지(admin.html)나 site.js 에서! -->
+        <p id="about-text" class="about-text"></p>
       </div>
     </section>
 
@@ -67,10 +59,8 @@
     <!-- 연락 -->
     <section id="contact" class="section">
       <h2>Contact</h2>
-      <p><a href="mailto:marue2mv@gmail.com">marue2mv@gmail.com</a></p>
-      <p><a href="https://www.instagram.com/ma_ru_o2/" target="_blank" rel="noopener">Instagram</a> ·
-         <a href="https://www.youtube.com/@Ma_Ru_O2" target="_blank" rel="noopener">YouTube</a>·
-         <a href="https://x.com/Emaru0000" target="_blank" rel="noopener">X</a></p>
+      <!-- 이메일과 링크는 site.js 로 채워져요 (관리 페이지에서 고칠 수 있어요) -->
+      <div id="contact-body"></div>
     </section>
 
   </main>
@@ -83,6 +73,7 @@
     <div class="modal-body" id="modal-body"></div>
   </div>
 
+  <script src="site.js"></script>
   <script src="works.js"></script>
   <script src="script.js"></script>
 </body>

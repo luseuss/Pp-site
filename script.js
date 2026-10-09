@@ -2,13 +2,56 @@
   [수업 3] JavaScript = 웹페이지의 "움직임"
   1) works.js 의 목록을 읽어서 → 카드를 자동으로 만들고
   2) 카드를 클릭하면 → 팝업을 열고 → 영상을 넣어줘요.
-  영상을 추가/수정할 때는 이 파일이 아니라 works.js 를 고치세요.
+  영상은 works.js, 소개·연락처는 site.js 를 읽어요. (고칠 때는 이 파일이 아니라 관리 페이지나 그 파일을 고치세요.)
 */
 
 const modal = document.getElementById('modal');
 const modalBody = document.getElementById('modal-body');
 const grid = document.getElementById('grid');
 const filtersEl = document.getElementById('filters');
+const aboutEl = document.getElementById('about-text');
+const contactEl = document.getElementById('contact-body');
+
+// ---------- 소개 · 연락처 (site.js 의 SITE 로 채우기) ----------
+// 링크는 http(s):// 로 시작하는 것만 허용 (javascript: 같은 위험한 주소 차단)
+const isHttpUrl = (u) => /^https?:\/\//i.test(String(u || '').trim());
+// 이메일: 공백, @ 이외의 특수문자(? & # < > 따옴표)가 들어간 주소는 걸러낸다
+const isEmail = (e) => /^[^\s@?&#<>"']+@[^\s@?&#<>"']+\.[^\s@?&#<>"']+$/.test(String(e || '').trim());
+
+function renderSite() {
+  if (typeof SITE === 'undefined') return;
+
+  if (aboutEl) aboutEl.textContent = SITE.about || '';   // 줄바꿈은 CSS(white-space: pre-line)로 보여줘요
+
+  if (!contactEl) return;
+  contactEl.textContent = '';
+
+  const email = String(SITE.email || '').trim();
+  if (isEmail(email)) {
+    const p = document.createElement('p');
+    const a = document.createElement('a');
+    a.href = `mailto:${email}`;
+    a.textContent = email;
+    p.appendChild(a);
+    contactEl.appendChild(p);
+  }
+
+  const links = (Array.isArray(SITE.links) ? SITE.links : []).filter((l) => l && l.label && isHttpUrl(l.url));
+  if (links.length) {
+    const p = document.createElement('p');
+    links.forEach((l, i) => {
+      if (i > 0) p.append(' · ');
+      const a = document.createElement('a');
+      a.href = l.url.trim();
+      a.textContent = l.label;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      p.appendChild(a);
+    });
+    contactEl.appendChild(p);
+  }
+}
+renderSite();
 
 // 유튜브 주소에서 영상 ID만 뽑아내기 (여러 형태의 주소를 다 처리)
 function getYouTubeId(url) {

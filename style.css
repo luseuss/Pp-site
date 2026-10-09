@@ -113,6 +113,7 @@ a { color: inherit; }
 /* About: 글 옆에 로고 이미지 */
 .about { display: flex; align-items: center; gap: 64px; }
 .about p { flex: 0 1 auto; }
+.about-text { white-space: pre-line; }   /* site.js 의 줄바꿈을 그대로 보여줘요 */
 .about-img { width: 220px; height: 220px; object-fit: contain; flex-shrink: 0; }
 
 @media (max-width: 600px) {
