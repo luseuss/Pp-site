@@ -41,6 +41,7 @@ const WORKS = [
     title: "[Maru_2]【Ado】好きでいて[motion Graphics]",
     meta: "2026 · typo,motion graphics,합작",
     tags: ["MV"],
+    featured: true,
   },
   {
     order: 2,
