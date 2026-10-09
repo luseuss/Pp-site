@@ -11,6 +11,8 @@
   const DEFAULTS = { owner: 'luseuss', repo: 'Pp-site', branch: 'claude/portfolio-site-creation-p3kzl1', token: '', remember: false };
   const WORKS_FILE = 'works.js';
   const SITE_FILE = 'site.js';
+  const INDEX_FILE = 'index.html';                     // 검색·공유 정보(<head>)는 여기에 들어가요
+  const DEFAULT_BASE = /^https?:$/.test(location.protocol) ? new URL('.', location.href).href : 'https://maru2.pages.dev/';
 
   const $ = (sel, el = document) => el.querySelector(sel);
   const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
@@ -25,7 +27,7 @@
   let items = [];                                      // 화면에서 편집 중인 영상 목록
   let site = emptySite();                              // 화면에서 편집 중인 사이트 정보 (이름·첫 화면·소개·연락처)
   let baseline = { works: '', site: '' };              // 불러온/저장한 직후의 내용(JSON) — 변경 여부 비교용
-  let remote = { works: null, site: null };            // { sha, text } GitHub 에 있는 파일
+  let remote = { works: null, site: null, index: null };            // { sha, text } GitHub 에 있는 파일
   const pendingUploads = new Map();                    // 아직 GitHub 에 안 올린 이미지: 경로 → { blob }
   const previews = new Map();                          // 미리보기용: 경로 → blob 주소 (사이트에 올라가기 전에도 보이게)
 
@@ -42,6 +44,12 @@
     heroMotion: true,
     heroFade: true,
     tilt: true,
+    // 검색·공유 정보: site.js 가 아니라 index.html 에 저장돼요 (검색 로봇·메신저 앱은 자바스크립트를 실행하지 않아서)
+    seo: {
+      siteUrl: 'https://maru2.pages.dev/',
+      description: '소리가 주는 감동을 시각적으로 표현하는 모션 그래픽 디자이너 MaRu_2의 영상 편집 포트폴리오입니다.',
+      ogImage: 'images/og.png',
+    },
   };
   const SECTION_KEYS = ['about', 'work', 'contact'];
   function emptySite() {
@@ -50,6 +58,7 @@
       nav: { about: '', work: '', contact: '' },
       sections: { about: { show: true, title: '' }, work: { show: true, title: '' }, contact: { show: true, title: '' } },
       about: '', aboutImage: '', email: '', links: [],
+      seo: { siteUrl: '', description: '', ogImage: '' },
     };
   }
   // site.js 가 아직 없을 때의 시작 상태: 이름·첫 화면은 지금 문구, 나머지는 빈칸
@@ -325,6 +334,7 @@
       aboutImage: str(s.aboutImage, SITE_DEFAULTS.aboutImage),
       email: String(s.email || ''),
       links: (Array.isArray(s.links) ? s.links : []).map((l) => ({ label: String((l && l.label) || ''), url: String((l && l.url) || '') })),
+      seo: structuredClone(SITE_DEFAULTS.seo),   // 실제 값은 index.html 에서 읽어요 (load)
     };
   }
 
@@ -354,6 +364,11 @@
       links: site.links
         .map((l) => ({ label: l.label.trim(), url: l.url.trim() }))
         .filter((l) => l.label || l.url),
+      seo: {
+        siteUrl: site.seo.siteUrl.trim(),
+        description: site.seo.description.replace(/\s+/g, ' ').trim(),
+        ogImage: site.seo.ogImage.trim(),
+      },
     };
   }
 
@@ -418,7 +433,7 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
 
   // 지금 화면에서 더 이상 쓰지 않는 이미지는 메모리에서 놓아 준다 (올릴 목록 + 미리보기용 blob 주소)
   function gcImages() {
-    const used = new Set([...items.map((it) => it.thumb.trim()), site.aboutImage.trim()]);
+    const used = new Set([...items.map((it) => it.thumb.trim()), site.aboutImage.trim(), site.seo.ogImage.trim()]);
     for (const [path, url] of previews) {
       if (!used.has(path)) { URL.revokeObjectURL(url); previews.delete(path); }
     }
@@ -583,6 +598,10 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
     $('#f-about').value = site.about;
     $('#f-about-image').value = site.aboutImage;
     updateAboutPreview();
+    $('#f-seo-url').value = site.seo.siteUrl;
+    $('#f-seo-desc').value = site.seo.description;
+    $('#f-seo-image').value = site.seo.ogImage;
+    updateSharePreview();
     $('#f-email').value = site.email;
     $$('.secrow[data-sec]').forEach((row) => {
       const k = row.dataset.sec;
@@ -604,6 +623,36 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
     img.style.objectFit = 'contain';
     img.onerror = () => { box.textContent = '미리보기 없음'; };
     box.appendChild(img);
+  }
+
+  // 검색·공유 미리보기 카드 + 글자 수
+  function updateSharePreview() {
+    const s = toSite();
+    const count = $('#seo-count');
+    count.textContent = `${s.seo.description.length}자`;
+    count.classList.toggle('warn', s.seo.description.length > 300);
+    const box = $('#share-preview');
+    box.textContent = '';
+    const pic = document.createElement('div');
+    pic.className = 'pic';
+    const path = s.seo.ogImage;
+    if (path) {
+      const img = document.createElement('img');
+      img.alt = '';
+      img.src = previewSrc(path);
+      img.onerror = () => { pic.textContent = '미리보기 없음'; };
+      pic.appendChild(img);
+    } else pic.textContent = '이미지 없음';
+    const txt = document.createElement('div');
+    txt.className = 'txt';
+    const host = document.createElement('small');
+    try { host.textContent = new URL(SEO.normalizeBase(s.seo.siteUrl)).hostname; } catch (e) { host.textContent = ''; }
+    const title = document.createElement('b');
+    title.textContent = SEO.pageTitle(s.name, s.tagline);
+    const desc = document.createElement('span');
+    desc.textContent = s.seo.description;
+    txt.append(host, title, desc);
+    box.append(pic, txt);
   }
 
   function renderLinks() {
@@ -657,6 +706,9 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
     }
     const s = toSite();
     if (s.aboutImage && !isSafeImage(s.aboutImage)) return { tab: 'site', text: '소개 이미지 경로가 올바르지 않아요. (예: images/logo.png)' };
+    if (s.seo.siteUrl && !/^https?:\/\/\S+$/i.test(s.seo.siteUrl)) return { tab: 'site', text: '검색·공유의 사이트 주소는 https:// 로 시작해야 해요. (예: https://maru2.pages.dev/)' };
+    if (s.seo.ogImage && !isSafeImage(s.seo.ogImage)) return { tab: 'site', text: '공유 미리보기 이미지 경로가 올바르지 않아요. (예: images/og.png)' };
+    if (s.seo.description.length > 300) return { tab: 'site', text: '검색·공유 설명이 너무 길어요. (300자 이하, 80~150자를 권장해요)' };
     if (!s.name) return { tab: 'site', text: '사이트 이름을 적어 주세요. (맨 위 로고와 탭 제목에 쓰여요)' };
     if (s.email && !isEmail(s.email)) return { tab: 'site', text: '이메일 주소가 올바르지 않아요. (예: name@example.com)' };
     for (let i = 0; i < s.links.length; i++) {
@@ -726,6 +778,17 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
         remote.site = null;
       }
     }
+
+    // 검색·공유 정보 (index.html 의 SEO 구역)
+    const ix = await loadText(INDEX_FILE);
+    remote.index = null;
+    if (ix.failed) {
+      problems.push(`index.html 을 불러오지 못했어요. 검색·공유 정보는 저장되지 않아요. (${ix.note})`);
+    } else {
+      remote.index = { sha: ix.sha, text: ix.text };
+      site.seo = SEO.parseSeo(ix.text, DEFAULT_BASE);
+      if (!SEO.currentBlock(ix.text)) site.seo.ogImage = SITE_DEFAULTS.seo.ogImage;   // 옛 index.html: 기본 공유 이미지
+    }
     baseline.site = remote.site ? snapSite() : '';
 
     render();
@@ -744,11 +807,16 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
       // site.js 가 아직 없으면(404) 새로 만든다. 그 외 오류는 그대로 보여준다.
       if (!(e.status === 404 && key === 'site' && remote.site && !remote.site.sha)) throw e;
     }
+    const text = build(latest && latest.text);
+    if (latest && text === latest.text) {               // 파일 내용이 이미 같으면 올리지 않아요 (예: 검색·공유 정보만 바꾼 경우)
+      remote[key] = { sha: latest.sha, text };
+      baseline[key] = snap();
+      return true;
+    }
     if (latest && remote[key] && remote[key].sha && latest.sha !== remote[key].sha &&
         !confirm(`불러온 뒤에 다른 곳에서 ${file} 가 바뀌었어요.\n내 화면의 내용으로 덮어쓸까요?`)) {
       return false;
     }
-    const text = build(latest && latest.text);
     const res = await api('PUT', file, {
       message,
       content: b64encode(text),
@@ -757,6 +825,19 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
     });
     remote[key] = { sha: res.content.sha, text };
     baseline[key] = snap();
+    return true;
+  }
+
+  // index.html 의 검색·공유 구역만 최신 파일 위에서 바꿔 저장 (다른 부분은 건드리지 않아요). 올렸으면 true.
+  async function saveIndex() {
+    if (!remote.index) return false;
+    const latest = await fetchRemote(INDEX_FILE);
+    const s = toSite();
+    const text = SEO.replaceSeoBlock(latest.text, SEO.buildSeoBlock(s.seo, { name: s.name, tagline: s.tagline }));
+    remote.index = { sha: latest.sha, text: latest.text };
+    if (text === latest.text) return false;
+    const res = await api('PUT', INDEX_FILE, { message: '관리 페이지에서 검색·공유 정보 수정', content: b64encode(text), sha: latest.sha, branch: settings.branch });
+    remote.index = { sha: res.content.sha, text };
     return true;
   }
 
@@ -781,7 +862,7 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
     const cancelled = [];
     try {
       // 이미지: 아직 안 올렸고 지금도 쓰이는 것만 먼저 올린다 (글이 가리키는 파일이 먼저 있어야 해서)
-      const used = new Set([...items.map((it) => it.thumb.trim()), site.aboutImage.trim()]);
+      const used = new Set([...items.map((it) => it.thumb.trim()), site.aboutImage.trim(), site.seo.ogImage.trim()]);
       const todo = [...pendingUploads].filter(([path]) => used.has(path));
       for (const [path, up] of todo) {
         await api('PUT', path, { message: '관리 페이지에서 이미지 올리기', content: await blobToB64(up.blob), branch: settings.branch });
@@ -795,6 +876,7 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
       if (d.site) {
         const ok = await saveFile(SITE_FILE, 'site', (old) => buildSiteText(toSite(), old), snapSite, '관리 페이지에서 사이트 정보 수정');
         (ok ? saved : cancelled).push('사이트 정보');
+        if (ok && await saveIndex()) saved.push('검색·공유 정보');
       }
       updateDirty();
       if (cancelled.length) {
@@ -814,6 +896,8 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
   function showCode() {
     $('#code').value = buildText(toWorks(), remote.works && remote.works.text);
     $('#code-site').value = buildSiteText(toSite(), remote.site && remote.site.text);
+    const s = toSite();
+    $('#code-seo').value = SEO.buildSeoBlock(s.seo, { name: s.name, tagline: s.tagline });
     const box = $('#codebox');
     box.hidden = false;
     box.open = true;
@@ -891,10 +975,35 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
   });
   $('#clr-about').addEventListener('click', () => { site.aboutImage = ''; $('#f-about-image').value = ''; updateAboutPreview(); updateDirty(); });
   $('#f-email').addEventListener('input', (e) => { site.email = e.target.value; updateDirty(); });
+
+  // 검색·공유 정보
+  [
+    ['#f-seo-url', (v) => { site.seo.siteUrl = v; }],
+    ['#f-seo-desc', (v) => { site.seo.description = v; }],
+    ['#f-seo-image', (v) => { site.seo.ogImage = v; }],
+  ].forEach(([sel, set]) => $(sel).addEventListener('input', (e) => { set(e.target.value); updateSharePreview(); updateDirty(); }));
+  ['#f-name', '#f-tagline'].forEach((sel) => $(sel).addEventListener('input', updateSharePreview));
+  $('#up-seo').addEventListener('click', () => $('#file-seo').click());
+  $('#file-seo').addEventListener('change', async (e) => {
+    const f = e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    try {
+      if (f.type !== 'image/png' && f.type !== 'image/jpeg') throw new Error('공유 미리보기 이미지는 png 또는 jpg 만 쓸 수 있어요. (카톡·X 등이 webp·gif 는 못 읽는 경우가 있어요)');
+      const { path, bytes } = await stageImage(f, 'images', 1200);
+      site.seo.ogImage = path;
+      $('#f-seo-image').value = path;
+      updateSharePreview();
+      updateDirty();
+      setMsg(`공유 이미지를 준비했어요. (${kb(bytes)}) 저장할 때 같이 올라가요.`, 'ok');
+    } catch (err) { setMsg(err.message, 'err'); }
+  });
+  $('#clr-seo').addEventListener('click', () => { site.seo.ogImage = ''; $('#f-seo-image').value = ''; updateSharePreview(); updateDirty(); });
   $('#save').addEventListener('click', save);
   $('#copy').addEventListener('click', showCode);
   $('#copy-works').addEventListener('click', () => copyArea('#code', 'works.js'));
   $('#copy-site').addEventListener('click', () => copyArea('#code-site', 'site.js'));
+  $('#copy-seo').addEventListener('click', () => copyArea('#code-seo', 'index.html 의 검색·공유 구역'));
   $('#reload').addEventListener('click', () => {
     if (confirm('저장하지 않은 변경을 버리고 다시 불러올까요?')) load();
   });

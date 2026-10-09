@@ -21,6 +21,7 @@ const modal = document.getElementById('modal');
 const modalBody = document.getElementById('modal-body');
 const grid = document.getElementById('grid');
 const filtersEl = document.getElementById('filters');
+const filterStatus = document.getElementById('filter-status');
 const aboutEl = document.getElementById('about-text');
 const contactEl = document.getElementById('contact-body');
 
@@ -191,6 +192,7 @@ function buildCard(work) {
   const play = document.createElement('span');
   play.className = 'play';
   play.textContent = '▶';
+  play.setAttribute('aria-hidden', 'true');   // 장식이라 스크린리더는 건너뛰어요 (카드 이름은 제목이 맡아요)
   thumb.appendChild(play);
 
   const title = document.createElement('h3');
@@ -229,6 +231,8 @@ if (typeof WORKS !== 'undefined') {
       buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.key === key)));
       // 보이는 카드들이 차례로 다시 나타나게 한다
       cards.filter((c) => c.hidden).forEach((c) => c.classList.remove('pop'));   // 숨겨진 카드는 효과 표시도 정리
+      // 스크린리더에 결과를 알려 준다 (처음 화면이 그려질 때는 말하지 않음)
+      if (animate && filterStatus) filterStatus.textContent = `${key ? labels.get(key) : '전체'} 영상 ${cards.filter((c) => !c.hidden).length}개`;
       if (animate && animationsOn()) {
         cards.filter((c) => !c.hidden).forEach((c, i) => {
           c.classList.remove('pop');
@@ -274,6 +278,11 @@ function clearModal() {
   modalBody.textContent = '';
 }
 
+// 팝업이 열려 있는 동안 뒤쪽(메뉴·본문·푸터)은 키보드·스크린리더가 못 건드리게 잠근다 (inert)
+const setBehindInert = (on) => document.querySelectorAll('.site-header, main, .site-footer').forEach((el) => { el.inert = on; });
+const closeBtn = modal.querySelector('.modal-close');
+let lastFocus = null;   // 팝업을 열기 전에 포커스가 있던 곳 (닫을 때 돌아가려고)
+
 // 팝업 열기: 카드의 data-type 에 따라 다른 플레이어를 만든다
 function openModal(card) {
   const type = card.dataset.type;
@@ -294,21 +303,39 @@ function openModal(card) {
     modalBody.appendChild(video);
   }
 
+  lastFocus = document.activeElement;
+  setBehindInert(true);
   modal.hidden = false;
   document.body.style.overflow = 'hidden'; // 뒤 화면 스크롤 막기
+  closeBtn.focus({ preventScroll: true }); // 키보드·스크린리더 사용자가 팝업 안으로 들어오게
 }
 
 // 팝업 닫기: 안의 내용도 비워야 영상 소리가 멈춘다
 function closeModal() {
   modal.hidden = true;
   clearModal();
+  setBehindInert(false);
   document.body.style.overflow = '';
+  // 열기 전에 있던 곳(영상 카드)으로 포커스를 돌려보낸다. 그 카드가 사라졌거나 숨겨졌으면 건너뜀
+  if (lastFocus && lastFocus.isConnected && !lastFocus.closest('[hidden]')) lastFocus.focus({ preventScroll: true });
+  lastFocus = null;
 }
 
 // 닫기 버튼, 배경 클릭, ESC 키로 닫기
 modal.querySelector('.modal-close').addEventListener('click', closeModal);
 modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.hidden) closeModal(); });
+document.addEventListener('keydown', (e) => {
+  if (modal.hidden) return;
+  if (e.key === 'Escape') { closeModal(); return; }
+  if (e.key !== 'Tab') return;
+  // 팝업 안에서만 Tab 이 돌게: 처음/끝에서 반대쪽으로 넘겨 준다
+  const f = [...modal.querySelectorAll('button, iframe, video[controls], [tabindex]:not([tabindex="-1"])')];
+  if (!f.length) return;
+  const first = f[0], last = f[f.length - 1];
+  if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+  else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  else if (!modal.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+});
 
 
 // ---------- 애니메이션: 스크롤하면 나타나기 · 현재 섹션 표시 · 헤더 그림자 ----------

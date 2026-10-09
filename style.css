@@ -7,7 +7,7 @@
 :root {
   --bg: #ffffff;
   --text: #111111;
-  --muted: #777777;
+  --muted: #767676;
   --line: #e8e8e8;
   --accent: #111111;
   --max: 1080px;
@@ -131,6 +131,12 @@ a { color: inherit; }
 .filter:hover { color: var(--text); border-color: var(--text); }
 .filter:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .filter[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* 접근성: 본문으로 건너뛰기 링크 (키보드로 Tab 을 눌렀을 때만 보여요), 화면에는 안 보이고 스크린리더만 읽는 글 */
+.skip-link { position: absolute; left: 12px; top: -64px; z-index: 100; padding: 10px 16px; background: #fff; color: var(--text); border: 1px solid var(--text); border-radius: 8px; text-decoration: none; transition: top 0.2s; }
+.skip-link:focus { top: 12px; }
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+main:focus { outline: none; }   /* 건너뛰기 링크로 옮겨 간 본문에는 윤곽선을 그리지 않아요 */
 
 /* hidden 속성이 있으면 항상 숨김 (비어 있는 문구용) */
 [hidden] { display: none !important; }

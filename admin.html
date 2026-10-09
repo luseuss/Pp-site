@@ -10,7 +10,7 @@
   <meta name="robots" content="noindex, nofollow" />
   <title>관리 | MaRu_2</title>
   <style>
-    :root { --bg:#fff; --text:#111; --muted:#777; --line:#e8e8e8; --soft:#f6f6f6; --danger:#c0392b; --ok:#1e7e46; }
+    :root { --bg:#fff; --text:#111; --muted:#767676; --line:#e8e8e8; --soft:#f6f6f6; --danger:#c0392b; --ok:#1e7e46; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { background: var(--bg); color: var(--text); line-height: 1.6; padding-bottom: 96px;
       font-family: -apple-system, "Pretendard", "Noto Sans KR", "Segoe UI", sans-serif; }
@@ -78,6 +78,15 @@
     .imgctl { display: grid; gap: 8px; }
     .btnrow { display: flex; gap: 8px; flex-wrap: wrap; }
     .thumbrow { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; }
+    .sharecard { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; max-width: 420px; background: #fff; }
+    .sharecard .pic { aspect-ratio: 1.91 / 1; background: var(--soft); display: grid; place-items: center; color: var(--muted); font-size: .8rem; overflow: hidden; }
+    .sharecard .pic img { width: 100%; height: 100%; object-fit: cover; }
+    .sharecard .txt { padding: 10px 14px; display: grid; gap: 2px; }
+    .sharecard .txt small { color: var(--muted); font-size: .72rem; }
+    .sharecard .txt b { font-size: .95rem; line-height: 1.35; }
+    .sharecard .txt span { color: var(--muted); font-size: .82rem; line-height: 1.4; }
+    .count { float: right; font-variant-numeric: tabular-nums; }
+    .count.warn { color: var(--danger); }
     .about-input { height: 160px; font: inherit; line-height: 1.6; margin-top: 0; resize: vertical; }
     textarea { width: 100%; height: 220px; font: .8rem/1.5 ui-monospace, Consolas, monospace; padding: 10px; border: 1px solid var(--line); border-radius: 6px; margin-top: 10px; }
     [hidden] { display: none !important; }
@@ -99,7 +108,7 @@
   </header>
 
   <main class="wrap">
-    <p class="hint"><b>영상</b> 탭에서는 영상을 추가·수정·삭제하고 카테고리(MV, AMV 등)와 순서(↑↓)를 바꿔요. <b>사이트 정보</b> 탭에서는 이름, 애니메이션 켜기/끄기(배경 움직임 포함), 메뉴와 섹션(보이기/숨기기), 첫 화면 문구, 소개 글과 이미지, 이메일, SNS 링크를 고쳐요. 이미지는 고른 뒤 <b>GitHub에 저장</b>을 누를 때 같이 올라가요. 다 고친 뒤 아래 <b>GitHub에 저장</b>을 누르면 바뀐 부분만 저장되고, 1~2분 뒤 사이트에 반영돼요.</p>
+    <p class="hint"><b>영상</b> 탭에서는 영상을 추가·수정·삭제하고 카테고리(MV, AMV 등)와 순서(↑↓)를 바꿔요. <b>사이트 정보</b> 탭에서는 이름, 검색·공유 정보(링크 미리보기), 애니메이션 켜기/끄기(배경 움직임 포함), 메뉴와 섹션(보이기/숨기기), 첫 화면 문구, 소개 글과 이미지, 이메일, SNS 링크를 고쳐요. 이미지는 고른 뒤 <b>GitHub에 저장</b>을 누를 때 같이 올라가요. 다 고친 뒤 아래 <b>GitHub에 저장</b>을 누르면 바뀐 부분만 저장되고, 1~2분 뒤 사이트에 반영돼요.</p>
 
     <details id="settings">
       <summary>연결 설정 (처음 한 번만)</summary>
@@ -145,6 +154,28 @@
         <input id="f-name" autocomplete="off" />
         <label for="f-tagline">탭 제목 설명 (이름 뒤에 붙어요. 예: "이름 | 영상 편집 포트폴리오")</label>
         <input id="f-tagline" autocomplete="off" />
+      </div>
+      <div class="panel">
+        <h2>검색 · 공유</h2>
+        <p class="help" style="margin:0 0 10px">구글 검색 결과와, 카톡·인스타·X 등에 링크를 보냈을 때 보이는 정보예요. 제목은 위의 "이름"과 "탭 제목 설명"을 따라가요. 이미 공유한 링크는 앱이 예전 미리보기를 기억하고 있어서 바뀌는 데 시간이 걸릴 수 있어요.</p>
+        <label for="f-seo-url">사이트 주소 (링크의 기준 주소 · https:// 로 시작)</label>
+        <input id="f-seo-url" autocomplete="off" placeholder="https://maru2.pages.dev/" />
+        <label for="f-seo-desc">설명 <span class="count" id="seo-count"></span></label>
+        <textarea id="f-seo-desc" class="about-input" style="height:78px" placeholder="검색 결과와 링크 미리보기에 보이는 한두 문장 (80~150자 권장)"></textarea>
+        <label>공유 미리보기 이미지 (가로형 1200×630 권장 · png 또는 jpg)</label>
+        <div class="imgrow">
+          <div class="thumb" id="seo-prev" style="aspect-ratio:1.91/1"></div>
+          <div class="imgctl">
+            <input id="f-seo-image" aria-label="공유 이미지 경로" placeholder="images/og.png" autocomplete="off" />
+            <div class="btnrow">
+              <button type="button" id="up-seo">이미지 올리기</button>
+              <button type="button" id="clr-seo">이미지 없애기</button>
+            </div>
+          </div>
+        </div>
+        <input type="file" id="file-seo" accept="image/png,image/jpeg" hidden />
+        <label>링크를 보내면 이렇게 보여요</label>
+        <div class="sharecard" id="share-preview" aria-live="polite"></div>
       </div>
       <div class="panel">
         <h2>효과</h2>
@@ -220,6 +251,9 @@
       <textarea id="code" readonly></textarea>
       <div class="codehead"><b>site.js</b><button id="copy-site" type="button">복사</button></div>
       <textarea id="code-site" readonly></textarea>
+      <div class="codehead"><b>index.html 의 검색·공유 구역</b><button id="copy-seo" type="button">복사</button></div>
+      <p class="help" style="margin:4px 0 0">index.html 에서 <code>&lt;!-- SEO:START</code> 줄부터 <code>&lt;!-- SEO:END --&gt;</code> 줄까지를 통째로 아래 내용으로 바꾸세요.</p>
+      <textarea id="code-seo" readonly></textarea>
     </details>
   </main>
 
@@ -273,6 +307,7 @@
     </li>
   </template>
 
+  <script src="seo.js"></script>
   <script src="admin.js"></script>
 </body>
 </html>
