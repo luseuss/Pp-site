@@ -155,6 +155,25 @@ a { color: inherit; }
 .scroll-cue::after { content: ""; position: absolute; inset: 0; background: var(--text); transform: translateY(-100%); animation: cue 2.4s var(--ease) 1.2s 4; }   /* 4번만 (끝없이 돌리지 않음 → 배터리·CPU 절약) */
 @keyframes cue { 0% { transform: translateY(-100%); } 55% { transform: none; } 100% { transform: translateY(100%); } }
 
+/* 첫 화면 배경: 천천히 퍼지는 둥근 파동 (가볍게: 요소 2개, transform·opacity 만 사용 → 그래픽 처리만 쓰고 JS 는 안 돌아요) */
+.hero { isolation: isolate; }
+.hero-bg { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.hero-bg span {
+  position: absolute; left: 50%; top: 50%;
+  width: clamp(260px, 44vmin, 480px); aspect-ratio: 1; border-radius: 50%;
+  border: 1px solid rgba(17, 17, 17, 0.22);
+  opacity: 0; transform: translate(-50%, -50%) scale(0.3);
+  animation: ripple 22s linear infinite;
+}
+.hero-bg span:nth-child(2) { animation-delay: -11s; }
+@keyframes ripple {
+  0%   { opacity: 0;   transform: translate(-50%, -50%) scale(0.35); }
+  12%  { opacity: 1; }
+  100% { opacity: 0;   transform: translate(-50%, -50%) scale(2); }
+}
+/* 첫 화면이 화면 밖이거나 탭이 가려져 있으면 멈춤 (script.js 가 .bg-paused 를 붙여요) */
+.hero.bg-paused .hero-bg span { animation-play-state: paused; }
+
 /* 스크롤하면 나타나기 (script.js 가 .reveal 을 붙이고, 화면에 들어오면 .in 을 붙여요) */
 .js .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.8s var(--ease), transform 0.8s var(--ease); transition-delay: var(--d, 0ms); }
 .js .reveal.in { opacity: 1; transform: none; }
@@ -192,5 +211,6 @@ html.no-anim { scroll-behavior: auto; }
 html.no-anim *, html.no-anim *::before, html.no-anim *::after { animation: none !important; transition: none !important; }
 html.no-anim .reveal { opacity: 1 !important; transform: none !important; }
 html.no-anim .scroll-cue { display: none; }
+html.no-anim .hero-bg, html.no-hero-motion .hero-bg { display: none; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 @media print { .reveal { opacity: 1 !important; transform: none !important; } }

@@ -10,6 +10,8 @@ const root = document.documentElement;
 if ((typeof SITE !== 'undefined' && SITE.animations === false) || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
   root.classList.add('no-anim');
 }
+// 첫 화면 배경 움직임만 따로 끄는 경우 (관리 페이지의 효과 → 첫 화면 배경)
+if (typeof SITE !== 'undefined' && SITE.heroMotion === false) root.classList.add('no-hero-motion');
 const animationsOn = () => !root.classList.contains('no-anim');
 
 const modal = document.getElementById('modal');
@@ -340,7 +342,18 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.h
     watch.forEach((el) => spy.observe(el));
   }
 
-  // 3) 스크롤하면 맨 위 메뉴에 그림자
+  // 3) 첫 화면 배경 파동: 화면 밖이거나 탭이 가려져 있으면 멈춰서 배터리·CPU 를 아낀다
+  const heroEl = document.querySelector('.hero');
+  if (heroEl && !root.classList.contains('no-hero-motion')) {
+    let heroSeen = true;
+    const sync = () => heroEl.classList.toggle('bg-paused', document.hidden || !heroSeen);
+    if ('IntersectionObserver' in window) {
+      new IntersectionObserver((entries) => { heroSeen = entries[entries.length - 1].isIntersecting; sync(); }).observe(heroEl);
+    }
+    document.addEventListener('visibilitychange', sync);
+  }
+
+  // 4) 스크롤하면 맨 위 메뉴에 그림자
   const header = document.querySelector('.site-header');
   if (header) {
     let scrolled = false;
