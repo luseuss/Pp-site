@@ -86,6 +86,11 @@ a { color: inherit; }
 }
 .card:hover .play, .card:focus-visible .play { opacity: 1; }
 .thumb.placeholder .play { opacity: 1; color: var(--muted); background: none; }
+/* 대표 영상: 격자 위에 크게 */
+.featured { margin-bottom: 48px; }
+.featured-label { color: var(--muted); font-size: 0.8rem; letter-spacing: 0.12em; margin-bottom: 12px; }
+.featured-card { max-width: 860px; }
+.featured-card h3 { font-size: 1.35rem; }
 .card h3 { font-size: 1.05rem; font-weight: 600; }
 .card p { color: var(--muted); font-size: 0.9rem; }
 

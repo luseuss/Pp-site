@@ -20,6 +20,7 @@ const animationsOn = () => !root.classList.contains('no-anim');
 const modal = document.getElementById('modal');
 const modalBody = document.getElementById('modal-body');
 const grid = document.getElementById('grid');
+const featuredEl = document.getElementById('featured');
 const filtersEl = document.getElementById('filters');
 const filterStatus = document.getElementById('filter-status');
 const aboutEl = document.getElementById('about-text');
@@ -213,6 +214,18 @@ if (typeof WORKS !== 'undefined') {
     .sort((a, b) => (orderOf(a.work) - orderOf(b.work)) || (a.i - b.i))
     .map((x) => x.work);
 
+  // 대표 영상: featured: true 인 첫 영상을 크게 보여준다 (격자에도 그대로 남아요)
+  const feat = sorted.find((w) => w.featured === true);
+  const featCard = feat && featuredEl ? buildCard(feat) : null;
+  if (featCard) {
+    featCard.classList.add('featured-card');
+    const label = document.createElement('p');
+    label.className = 'featured-label';
+    label.textContent = '대표 영상';
+    featuredEl.append(label, featCard);
+    featuredEl.hidden = false;
+  }
+
   const cards = [];
   const labels = new Map();   // 카테고리 이름 (처음 나온 표기 그대로, 나온 순서대로)
   sorted.forEach((work) => {
@@ -262,10 +275,12 @@ if (typeof WORKS !== 'undefined') {
 }
 
 // 카드 클릭은 grid 한 곳에서 처리 (카드마다 리스너를 달지 않음)
-grid.addEventListener('click', (e) => {
+const onCardClick = (e) => {
   const card = e.target.closest('.card');
   if (card) openModal(card);
-});
+};
+grid.addEventListener('click', onCardClick);
+if (featuredEl) featuredEl.addEventListener('click', onCardClick);
 // 카드의 "나타나기" 효과가 끝나면 효과 표시(.pop)를 한 곳에서 지운다
 grid.addEventListener('animationend', (e) => {
   if (e.target.classList) e.target.classList.remove('pop');

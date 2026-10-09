@@ -229,7 +229,7 @@
     return works;
   }
 
-  const KNOWN = ['order', 'url', 'src', 'thumb', 'title', 'meta', 'tags'];
+  const KNOWN = ['order', 'url', 'src', 'thumb', 'title', 'meta', 'tags', 'featured'];
   const orderOf = (w) => (typeof w.order === 'number' ? w.order : Infinity);
 
   // "MV, AMV" 같은 글자 → ["MV","AMV"] (빈 칸 제거, 대소문자 다른 중복 제거)
@@ -256,6 +256,7 @@
         title: w.title || '',
         meta: w.meta || '',
         tags: parseTags(Array.isArray(w.tags) ? w.tags.join(',') : (w.tags || '')),
+        featured: w.featured === true,
         extra: Object.fromEntries(Object.entries(w).filter(([k]) => !KNOWN.includes(k))),
       }));
   }
@@ -270,6 +271,7 @@
       o.title = it.title.trim();
       o.meta = it.meta.trim();
       if (it.tags.length) o.tags = [...it.tags];
+      if (it.featured) o.featured = true;
       return { ...o, ...it.extra };
     });
   }
@@ -529,6 +531,15 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
       tagsInput.value = it.tags.join(', ');
       tagsInput.addEventListener('input', () => { it.tags = parseTags(tagsInput.value); updateDirty(); });
       tagsInput.addEventListener('change', refreshChips);   // 입력을 마쳤을 때 다른 영상의 버튼 목록도 갱신
+      // 대표 영상: 하나만 고를 수 있어요 (다른 영상에서 자동으로 풀림)
+      const feat = $('.f-featured', li);
+      feat.checked = !!it.featured;
+      feat.addEventListener('change', () => {
+        items.forEach((x) => { x.featured = false; });
+        it.featured = feat.checked;
+        $$('.f-featured', list).forEach((c, j) => { c.checked = !!items[j].featured; });
+        updateDirty();
+      });
       sync();
 
       const up = $('.up', li), down = $('.down', li);
@@ -921,7 +932,7 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
   $('#tab-works').addEventListener('click', () => showTab('works'));
   $('#tab-site').addEventListener('click', () => showTab('site'));
   $('#add').addEventListener('click', () => {
-    items.push({ type: 'youtube', url: '', src: '', thumb: '', title: '', meta: `${new Date().getFullYear()} · `, tags: [], extra: {} });
+    items.push({ type: 'youtube', url: '', src: '', thumb: '', title: '', meta: `${new Date().getFullYear()} · `, tags: [], featured: false, extra: {} });
     render();
     const last = list.lastElementChild;
     if (last) { $('.f-url', last).focus(); last.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
