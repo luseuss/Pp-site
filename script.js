@@ -412,8 +412,11 @@ document.addEventListener('keydown', (e) => {
       if (featuredWork.url) {
         const id = getYouTubeId(featuredWork.url);
         if (!id) return;
+        // 주소에 시작 시간(&t=23)이 있으면 그 지점부터 재생
+        let start = 0;
+        try { start = parseInt(new URL(featuredWork.url).searchParams.get('t'), 10) || 0; } catch (e) { /* 주소가 아님 */ }
         el = document.createElement('iframe');
-        el.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=1&controls=0&loop=1&playlist=${encodeURIComponent(id)}&playsinline=1&modestbranding=1&rel=0&disablekb=1&iv_load_policy=3`;
+        el.src = `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?${start > 0 ? `start=${start}&` : ''}autoplay=1&mute=1&controls=0&loop=1&playlist=${encodeURIComponent(id)}&playsinline=1&modestbranding=1&rel=0&disablekb=1&iv_load_policy=3`;
         el.allow = 'autoplay; encrypted-media';
         el.referrerPolicy = 'strict-origin-when-cross-origin';
         el.addEventListener('load', () => { if (player === el) heroEl.classList.add('has-video'); });
