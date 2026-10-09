@@ -37,10 +37,11 @@
 const WORKS = [
   {
     order: 1,
-    url: "https://youtu.be/GRSXjWZKfgw",
+    url: "https://youtu.be/GRSXjWZKfgw?si=qUzCr3s0IMOwNv21&t=23",
     title: "[Maru_2]【Ado】好きでいて[motion Graphics]",
     meta: "2026 · typo,motion graphics,합작",
     tags: ["MV"],
+    featured: true,
   },
   {
     order: 2,
