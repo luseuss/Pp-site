@@ -193,10 +193,10 @@ main:focus { outline: none; }   /* 건너뛰기 링크로 옮겨 간 본문에�
 .hero.bg-paused .hero-bg span { animation-play-state: paused; }
 
 /* 첫 화면 배경 영상: 글자 뒤, 흰 막을 씌워 글자가 또렷하게 (영상이 준비되면 .has-video 가 붙어 서서히 나타나요) */
-.hero-video { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.hero-video { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; container-type: size; }
 .hero-video iframe, .hero-video video {
   position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-  width: 177.78vh; min-width: 100%; height: 56.25vw; min-height: 100%;   /* 화면을 꽉 채우도록 (cover) */
+  width: max(100cqw, 177.78cqh); height: max(56.25cqw, 100cqh);   /* 항상 16:9 를 유지하면서 첫 화면을 꽉 채우도록 (cover). 비율이 어긋나면 영상 둘레에 회색 띠가 생겨요 */
   border: 0; object-fit: cover; opacity: 0; transition: opacity 1.2s;
 }
 .hero.has-video .hero-video iframe, .hero.has-video .hero-video video { opacity: 1; }
