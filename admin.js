@@ -40,11 +40,13 @@
     aboutImage: 'images/logo.png',
     animations: true,
     heroMotion: true,
+    heroFade: true,
+    tilt: true,
   };
   const SECTION_KEYS = ['about', 'work', 'contact'];
   function emptySite() {
     return {
-      name: '', tagline: '', animations: true, heroMotion: true, hero: { eyebrow: '', title: '', lead: '', button: '' },
+      name: '', tagline: '', animations: true, heroMotion: true, heroFade: true, tilt: true, hero: { eyebrow: '', title: '', lead: '', button: '' },
       nav: { about: '', work: '', contact: '' },
       sections: { about: { show: true, title: '' }, work: { show: true, title: '' }, contact: { show: true, title: '' } },
       about: '', aboutImage: '', email: '', links: [],
@@ -306,6 +308,8 @@
       tagline: str(s.tagline, SITE_DEFAULTS.tagline),
       animations: typeof s.animations === 'boolean' ? s.animations : SITE_DEFAULTS.animations,
       heroMotion: typeof s.heroMotion === 'boolean' ? s.heroMotion : SITE_DEFAULTS.heroMotion,
+      heroFade: typeof s.heroFade === 'boolean' ? s.heroFade : SITE_DEFAULTS.heroFade,
+      tilt: typeof s.tilt === 'boolean' ? s.tilt : SITE_DEFAULTS.tilt,
       hero: {
         eyebrow: str(h.eyebrow, SITE_DEFAULTS.hero.eyebrow),
         title: str(h.title, SITE_DEFAULTS.hero.title),
@@ -334,6 +338,8 @@
       tagline: site.tagline.trim(),
       animations: !!site.animations,
       heroMotion: !!site.heroMotion,
+      heroFade: !!site.heroFade,
+      tilt: !!site.tilt,
       hero: {
         eyebrow: site.hero.eyebrow.trim(),
         title: cleanLines(site.hero.title),
@@ -353,7 +359,7 @@
 
   const SITE_HEADER = `/*
   ★ 사이트 정보 (이름 · 첫 화면 · 소개 · 연락처) — 관리 페이지(admin.html)에서 고치거나, 여기를 직접 고쳐도 돼요 ★
-  name/tagline: 사이트 이름과 탭 제목 설명, animations: 애니메이션 켜기/끄기, heroMotion: 첫 화면 배경 파동, hero: 첫 화면 문구, nav/sections: 메뉴와 영역(보이기·제목),
+  name/tagline: 사이트 이름과 탭 제목 설명, animations: 애니메이션 켜기/끄기, heroMotion: 첫 화면 배경 파동, heroFade/tilt: 스크롤 흐려지기·마우스 기울기, hero: 첫 화면 문구, nav/sections: 메뉴와 영역(보이기·제목),
   about/aboutImage: 소개 글과 이미지,
   email: 이메일, links: 링크 목록 (label=이름, url=주소). 따옴표 한 줄이 화면의 한 줄이에요.
 */
@@ -378,6 +384,8 @@
   tagline: ${q(s.tagline)},
   animations: ${s.animations ? 'true' : 'false'},
   heroMotion: ${s.heroMotion ? 'true' : 'false'},
+  heroFade: ${s.heroFade ? 'true' : 'false'},
+  tilt: ${s.tilt ? 'true' : 'false'},
   hero: {
     eyebrow: ${q(s.hero.eyebrow)},
     title: ${multi(s.hero.title, '    ')},
@@ -566,6 +574,8 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
     $('#f-tagline').value = site.tagline;
     $('#f-anim').checked = site.animations;
     $('#f-hero-motion').checked = site.heroMotion;
+    $('#f-hero-fade').checked = site.heroFade;
+    $('#f-tilt').checked = site.tilt;
     $('#f-eyebrow').value = site.hero.eyebrow;
     $('#f-hero-title').value = site.hero.title;
     $('#f-lead').value = site.hero.lead;
@@ -853,6 +863,8 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
 
   $('#f-anim').addEventListener('change', (e) => { site.animations = e.target.checked; updateDirty(); });
   $('#f-hero-motion').addEventListener('change', (e) => { site.heroMotion = e.target.checked; updateDirty(); });
+  $('#f-hero-fade').addEventListener('change', (e) => { site.heroFade = e.target.checked; updateDirty(); });
+  $('#f-tilt').addEventListener('change', (e) => { site.tilt = e.target.checked; updateDirty(); });
 
   // 메뉴와 섹션 (보이기 / 메뉴 글자 / 영역 제목)
   $$('.secrow[data-sec]').forEach((row) => {

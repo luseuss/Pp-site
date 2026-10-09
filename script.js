@@ -12,6 +12,9 @@ if ((typeof SITE !== 'undefined' && SITE.animations === false) || (window.matchM
 }
 // 첫 화면 배경 움직임만 따로 끄는 경우 (관리 페이지의 효과 → 첫 화면 배경)
 if (typeof SITE !== 'undefined' && SITE.heroMotion === false) root.classList.add('no-hero-motion');
+// 스크롤하면 제목 흐려지기 / 마우스 기울기를 따로 끄는 경우
+if (typeof SITE !== 'undefined' && SITE.heroFade === false) root.classList.add('no-hero-fade');
+if (typeof SITE !== 'undefined' && SITE.tilt === false) root.classList.add('no-tilt');
 const animationsOn = () => !root.classList.contains('no-anim');
 
 const modal = document.getElementById('modal');
@@ -364,4 +367,50 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.h
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
   }
+})();
+
+
+// ---------- 버튼 · 영상 카드: 마우스를 따라 살짝 기울어지기 ----------
+// 마우스가 올라가 있는 동안에만 pointermove 를 듣고, 벗어나면 바로 해제해요. (평소에는 리스너·계산이 전혀 없음)
+// 터치 기기, 애니메이션 끔, "동작 줄이기", 관리 페이지에서 끈 경우에는 아예 시작하지 않아요.
+(function initTilt() {
+  if (!animationsOn() || root.classList.contains('no-tilt')) return;
+  if (!window.matchMedia || !matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+  const MAX = 6;            // 최대 기울기(도)
+  let el = null, raf = 0, last = null;
+
+  const apply = () => {
+    raf = 0;
+    if (!el || !last) return;
+    const r = el.getBoundingClientRect();
+    const x = (last.clientX - r.left) / r.width - 0.5;    // -0.5 ~ 0.5
+    const y = (last.clientY - r.top) / r.height - 0.5;
+    el.style.setProperty('--rx', `${(-y * MAX).toFixed(2)}deg`);
+    el.style.setProperty('--ry', `${(x * MAX).toFixed(2)}deg`);
+  };
+  const onMove = (e) => { last = e; if (!raf) raf = requestAnimationFrame(apply); };
+
+  const end = () => {
+    document.removeEventListener('pointermove', onMove);
+    if (raf) cancelAnimationFrame(raf);
+    raf = 0;
+    if (el) { el.classList.remove('tilting'); el.style.removeProperty('--rx'); el.style.removeProperty('--ry'); }
+    el = null; last = null;                                // 참조를 놓아 줘요
+  };
+
+  document.addEventListener('pointerover', (e) => {
+    const t = e.target.closest ? e.target.closest('.card, .hero .button') : null;
+    if (!t || t === el) return;
+    if (el) end();                                          // 이전 것이 숨겨지는 등으로 정리 못 했다면 먼저 정리
+    el = t;
+    t.classList.add('tilting');
+    document.addEventListener('pointermove', onMove, { passive: true });
+    onMove(e);
+  });
+  document.addEventListener('pointerout', (e) => {
+    if (!el) return;
+    if (e.relatedTarget && el.contains(e.relatedTarget)) return;   // 같은 카드 안에서 움직이는 중
+    end();
+  });
 })();

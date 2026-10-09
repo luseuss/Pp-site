@@ -9,6 +9,8 @@
     animations: true 이면 움직임(첫 화면 등장, 스크롤 나타나기, 카드 효과)이 켜지고, false 면 모두 꺼져요.
                 (방문자가 운영체제에서 "동작 줄이기"를 켜 두었으면 true 여도 자동으로 꺼져요.)
     heroMotion: 첫 화면 배경에 천천히 퍼지는 둥근 파동. true 면 보이고 false 면 사라져요. (animations 가 false 면 같이 꺼져요.)
+    heroFade:   스크롤하면 첫 화면 글자가 위로 올라가며 서서히 사라지는 효과. (true/false)
+    tilt:       버튼과 영상 카드가 마우스를 따라 살짝 기울어지는 효과. (true/false, 터치 기기에서는 자동으로 꺼져요)
 
   [첫 화면]
     hero.eyebrow: 제목 위의 작은 글씨   hero.title: 큰 제목 (따옴표 한 줄이 화면의 한 줄)
@@ -41,6 +43,8 @@ const SITE = {
   tagline: "영상 편집 포트폴리오",
   animations: true,
   heroMotion: true,
+  heroFade: true,
+  tilt: true,
   hero: {
     eyebrow: "VIDEO EDITOR",
     title: [

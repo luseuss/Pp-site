@@ -143,11 +143,18 @@ a { color: inherit; }
 
 /* 첫 화면: 차례로 떠오르기 */
 @keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
-.js .hero > .eyebrow, .js .hero > h1, .js .hero > .lead, .js .hero > .button { animation: rise 0.9s var(--ease) backwards; }
-.js .hero > .eyebrow { animation-delay: 0.05s; }
-.js .hero > h1 { animation-delay: 0.18s; }
-.js .hero > .lead { animation-delay: 0.34s; }
-.js .hero > .button { animation-delay: 0.5s; }
+.js .hero-inner > .eyebrow, .js .hero-inner > h1, .js .hero-inner > .lead, .js .hero-inner > .button { animation: rise 0.9s var(--ease) backwards; }
+.js .hero-inner > .eyebrow { animation-delay: 0.05s; }
+.js .hero-inner > h1 { animation-delay: 0.18s; }
+.js .hero-inner > .lead { animation-delay: 0.34s; }
+.js .hero-inner > .button { animation-delay: 0.5s; }
+
+/* 스크롤하면 첫 화면 글자 덩어리가 위로 올라가며 서서히 사라져요.
+   브라우저의 "스크롤 연동 애니메이션" 기능을 써서 자바스크립트가 필요 없어요 (지원하지 않는 브라우저에서는 그냥 가만히 있어요). */
+@keyframes heroFade { to { opacity: 0; transform: translateY(-48px) scale(0.98); } }
+@supports (animation-timeline: view()) {
+  .hero-inner { animation: heroFade linear both; animation-timeline: view(); animation-range: exit 0% exit 75%; }
+}
 
 /* 첫 화면 아래쪽: 스크롤을 알려 주는 가는 선 */
 .hero { position: relative; }
@@ -192,6 +199,19 @@ a { color: inherit; }
 #contact-body a { transition: opacity 0.2s; }
 #contact-body a:hover { opacity: 0.55; }
 
+/* 메뉴에 마우스를 올리면: 올린 메뉴만 또렷하고 나머지는 흐려져요 (마우스가 있는 기기에서만, 순수 CSS) */
+@media (hover: hover) {
+  .site-header nav a { transition: color 0.2s, opacity 0.3s var(--ease), transform 0.3s var(--ease); }
+  .site-header nav:hover a:not(:hover) { opacity: 0.35; }
+  .site-header nav a:hover { transform: translateY(-1px); }
+}
+
+/* 버튼 · 영상 카드: 마우스를 따라 살짝 기울어져요 (script.js 가 마우스가 올라가 있는 동안에만 --rx, --ry 를 바꿔요) */
+@media (hover: hover) and (pointer: fine) {
+  .card.tilting .thumb { transform: translateY(-4px) perspective(700px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: transform 0.15s ease-out, box-shadow 0.45s var(--ease); }
+  .hero .button.tilting { transform: translateY(-2px) perspective(500px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); transition: background 0.2s, color 0.2s, transform 0.15s ease-out; }
+}
+
 /* 맨 위 메뉴: 스크롤하면 그림자, 현재 섹션에 밑줄 */
 .site-header { transition: box-shadow 0.3s; }
 .site-header.scrolled { box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06); }
@@ -211,6 +231,7 @@ html.no-anim { scroll-behavior: auto; }
 html.no-anim *, html.no-anim *::before, html.no-anim *::after { animation: none !important; transition: none !important; }
 html.no-anim .reveal { opacity: 1 !important; transform: none !important; }
 html.no-anim .scroll-cue { display: none; }
+html.no-hero-fade .hero-inner { animation: none; }
 html.no-anim .hero-bg, html.no-hero-motion .hero-bg { display: none; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 @media print { .reveal { opacity: 1 !important; transform: none !important; } }
