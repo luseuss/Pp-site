@@ -5,6 +5,13 @@
   영상은 works.js, 소개·연락처는 site.js 를 읽어요. (고칠 때는 이 파일이 아니라 관리 페이지나 그 파일을 고치세요.)
 */
 
+// 애니메이션을 끄는 경우: 관리 페이지에서 껐거나(site.js 의 animations: false), 운영체제에서 "동작 줄이기"를 켠 사람
+const root = document.documentElement;
+if ((typeof SITE !== 'undefined' && SITE.animations === false) || (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches)) {
+  root.classList.add('no-anim');
+}
+const animationsOn = () => !root.classList.contains('no-anim');
+
 const modal = document.getElementById('modal');
 const modalBody = document.getElementById('modal-body');
 const grid = document.getElementById('grid');
@@ -212,9 +219,19 @@ if (typeof WORKS !== 'undefined') {
   // 카테고리가 하나라도 있으면 "전체 / MV / AMV …" 버튼을 만든다
   if (labels.size > 0) {
     const buttons = [];
-    const select = (key) => {
+    const select = (key, animate = true) => {
       cards.forEach((c) => { c.hidden = key !== '' && !c.tagKeys.has(key); });
       buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.key === key)));
+      // 보이는 카드들이 차례로 다시 나타나게 한다
+      if (animate && animationsOn()) {
+        cards.filter((c) => !c.hidden).forEach((c, i) => {
+          c.classList.remove('pop');
+          void c.offsetWidth;   // 같은 애니메이션을 다시 시작하기 위한 트릭
+          c.style.setProperty('--d', `${Math.min(i, 8) * 60}ms`);
+          c.classList.add('pop');
+          c.addEventListener('animationend', () => c.classList.remove('pop'), { once: true });
+        });
+      }
     };
     [['', '전체'], ...labels].forEach(([key, label]) => {
       const b = document.createElement('button');
@@ -227,7 +244,7 @@ if (typeof WORKS !== 'undefined') {
       filtersEl.appendChild(b);
     });
     filtersEl.hidden = false;
-    select('');
+    select('', false);
   }
 }
 
@@ -266,3 +283,45 @@ function closeModal() {
 modal.querySelector('.modal-close').addEventListener('click', closeModal);
 modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.hidden) closeModal(); });
+
+
+// ---------- 애니메이션: 스크롤하면 나타나기 · 현재 섹션 표시 · 헤더 그림자 ----------
+(function initAnimations() {
+  if (!animationsOn()) return;
+
+  // 1) 화면에 들어올 때 부드럽게 나타나기. 한꺼번에 들어오는 것들은 차례로(80ms 간격).
+  const targets = [...document.querySelectorAll('.section > h2, .about-img, .about-text, .filters, .card, #contact-body > p')];
+  targets.forEach((el) => el.classList.add('reveal'));
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.filter((e) => e.isIntersecting).forEach((e, i) => {
+        e.target.style.setProperty('--d', `${Math.min(i, 6) * 80}ms`);
+        e.target.classList.add('in');
+        io.unobserve(e.target);
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -6% 0px' });
+    targets.forEach((el) => io.observe(el));
+  } else {
+    targets.forEach((el) => el.classList.add('in'));   // 오래된 브라우저: 그냥 보여준다
+  }
+
+  // 2) 지금 보고 있는 섹션의 메뉴에 밑줄 (첫 화면에서는 없음)
+  const links = [...document.querySelectorAll('.site-header nav a[data-nav]')];
+  const watch = [document.querySelector('.hero'), ...['about', 'work', 'contact'].map((k) => document.getElementById(k))].filter(Boolean);
+  if ('IntersectionObserver' in window && links.length) {
+    const spy = new IntersectionObserver((entries) => {
+      entries.filter((e) => e.isIntersecting).forEach((e) => {
+        links.forEach((a) => a.classList.toggle('active', a.dataset.nav === e.target.id));
+      });
+    }, { rootMargin: '-45% 0px -50% 0px' });
+    watch.forEach((el) => spy.observe(el));
+  }
+
+  // 3) 스크롤하면 맨 위 메뉴에 그림자
+  const header = document.querySelector('.site-header');
+  if (header) {
+    const onScroll = () => header.classList.toggle('scrolled', window.scrollY > 8);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  }
+})();

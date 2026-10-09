@@ -135,3 +135,63 @@ a { color: inherit; }
 
 /* hidden 속성이 있으면 항상 숨김 (비어 있는 문구용) */
 [hidden] { display: none !important; }
+
+/* =====================================================================
+   애니메이션 — 조용하고 절제된 움직임 (관리 페이지에서 끌 수 있어요)
+   · 끄면(site.js 의 animations: false) 또는 운영체제의 "동작 줄이기"가 켜져 있으면 모두 사라져요.
+   ===================================================================== */
+:root { --ease: cubic-bezier(0.22, 0.8, 0.26, 1); }
+
+/* 첫 화면: 차례로 떠오르기 */
+@keyframes rise { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+.js .hero > .eyebrow, .js .hero > h1, .js .hero > .lead, .js .hero > .button { animation: rise 0.9s var(--ease) backwards; }
+.js .hero > .eyebrow { animation-delay: 0.05s; }
+.js .hero > h1 { animation-delay: 0.18s; }
+.js .hero > .lead { animation-delay: 0.34s; }
+.js .hero > .button { animation-delay: 0.5s; }
+
+/* 첫 화면 아래쪽: 스크롤을 알려 주는 가는 선 */
+.hero { position: relative; }
+.scroll-cue { position: absolute; left: 50%; bottom: 28px; width: 1px; height: 48px; background: var(--line); overflow: hidden; }
+.scroll-cue::after { content: ""; position: absolute; inset: 0; background: var(--text); transform: translateY(-100%); animation: cue 2.4s var(--ease) 1.2s infinite; }
+@keyframes cue { 0% { transform: translateY(-100%); } 55% { transform: none; } 100% { transform: translateY(100%); } }
+
+/* 스크롤하면 나타나기 (script.js 가 .reveal 을 붙이고, 화면에 들어오면 .in 을 붙여요) */
+.js .reveal { opacity: 0; transform: translateY(24px); transition: opacity 0.8s var(--ease), transform 0.8s var(--ease); transition-delay: var(--d, 0ms); }
+.js .reveal.in { opacity: 1; transform: none; }
+
+/* 카테고리를 바꿀 때 카드가 다시 나타나기 */
+@keyframes pop { from { opacity: 0; transform: translateY(14px) scale(0.98); } to { opacity: 1; transform: none; } }
+.card.pop { animation: pop 0.5s var(--ease) var(--d, 0ms) backwards; }
+
+/* 영상 카드: 마우스를 올리면 살짝 떠오르기 */
+.thumb { transition: transform 0.45s var(--ease), box-shadow 0.45s var(--ease); }
+.card:hover .thumb, .card:focus-visible .thumb { transform: translateY(-4px); box-shadow: 0 14px 30px rgba(0, 0, 0, 0.12); }
+
+/* 버튼 · 링크 */
+.button { transition: background 0.2s, color 0.2s, transform 0.3s var(--ease); }
+.button:hover { transform: translateY(-2px); }
+#contact-body a { transition: opacity 0.2s; }
+#contact-body a:hover { opacity: 0.55; }
+
+/* 맨 위 메뉴: 스크롤하면 그림자, 현재 섹션에 밑줄 */
+.site-header { transition: box-shadow 0.3s; }
+.site-header.scrolled { box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06); }
+.site-header nav a { position: relative; transition: color 0.2s; }
+.site-header nav a::after { content: ""; position: absolute; left: 0; right: 0; bottom: -4px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: left; transition: transform 0.35s var(--ease); }
+.site-header nav a:hover::after, .site-header nav a.active::after { transform: scaleX(1); }
+.site-header nav a.active { color: var(--text); }
+
+/* 영상 팝업 열릴 때 */
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes zoom { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: none; } }
+.modal:not([hidden]) { animation: fade 0.25s ease both; }
+.modal:not([hidden]) .modal-body { animation: zoom 0.4s var(--ease) both; }
+
+/* 끄기: 관리 페이지에서 끄거나, 운영체제에서 "동작 줄이기"를 켠 경우 */
+html.no-anim { scroll-behavior: auto; }
+html.no-anim *, html.no-anim *::before, html.no-anim *::after { animation: none !important; transition: none !important; }
+html.no-anim .reveal { opacity: 1 !important; transform: none !important; }
+html.no-anim .scroll-cue { display: none; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+@media print { .reveal { opacity: 1 !important; transform: none !important; } }
