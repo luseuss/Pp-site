@@ -37,21 +37,27 @@
 const WORKS = [
   {
     order: 1,
+    url: "https://youtu.be/4AwmeHuD2WU?si=6G8olNLFgk3s_1UH",
+    title: "[Maru_2] 9Lana - プロポーズ[motion Graphics]",
+    meta: "2026 · 모션그래픽",
+    tags: ["MV"],
+  },
+  {
+    order: 2,
     url: "https://youtu.be/GRSXjWZKfgw?si=qUzCr3s0IMOwNv21&t=23",
     title: "[Maru_2]【Ado】好きでいて[motion Graphics]",
     meta: "2026 · typo,motion graphics,합작",
     tags: ["MV"],
-    featured: true,
   },
   {
-    order: 2,
+    order: 3,
     url: "https://youtu.be/QUdiDIH1u-g",
     title: "[Maru_2] ryo (supercell) / メルト CPK! Remix (初音ミク ver.) [motion Graphics]",
     meta: "2026 · typo,motion graphics",
     tags: ["MV"],
   },
   {
-    order: 3,
+    order: 4,
     url: "https://youtu.be/d2Ha2hTR_Ic",
     title: "[Maru_2] Bol4- 'Find You' [motion Graphics]",
     meta: "2026 · typo,motion graphics",
