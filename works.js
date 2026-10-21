@@ -44,7 +44,7 @@ const WORKS = [
   },
   {
     order: 2,
-    src: "C:\\Users\\wnsdn\\Desktop\\랜더링\\인스타 업로드용.mp4",
+    url: "https://youtu.be/GRSXjWZKfgw?si=3UYsHuQ8cx2T6dlY",
     thumb: "thumbs/image-mvil3cds.jpg",
     title: "[Maru_2]【Ado】好きでいて[motion Graphics]",
     meta: "2026 · typo,motion graphics,합작",
