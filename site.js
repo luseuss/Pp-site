@@ -50,8 +50,8 @@ const SITE = {
   hero: {
     eyebrow: "VIDEO EDITOR",
     title: [
-      "소리가 주는 감동을",
-      "시각적으로 표현하자",
+      "귀가 느끼는 행복을",
+      "눈으로도 느낄 수 있도록",
     ].join("\n"),
     lead: "mv,amv",
     button: "works ↓",
