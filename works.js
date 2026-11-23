@@ -65,6 +65,13 @@ const WORKS = [
     meta: "2026 · typo,motion graphics",
     tags: ["MV"],
   },
+  {
+    order: 5,
+    url: "https://youtu.be/1hg-1oWWnmM",
+    title: "[MaRu_2] DECO 27×堀江晶太kemu   セカイ feat  初音ミク",
+    meta: "2026 · Ai · Motion Graphics",
+    tags: ["AI","MV"],
+  },
 
   // ▼ 직접 올린 mp4 예시 (쓰려면 앞의 // 를 지우고 파일 이름을 맞추세요)
   // {
