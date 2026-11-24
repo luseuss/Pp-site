@@ -157,6 +157,7 @@ function getTags(work) {
 function buildCard(work) {
   const card = document.createElement('button');
   card.className = 'card';
+  card.dataset.desc = typeof work.desc === 'string' ? work.desc : '';   // 팝업에 보여줄 작업 과정·설명
   card.dataset.tags = getTags(work).join('\n');   // 팝업에 보여줄 카테고리 (원래 표기)
   card.tagKeys = new Set(getTags(work).map((t) => t.toLowerCase())); // 필터에서 쓰는 카테고리 (대소문자 구분 X)
 
@@ -336,6 +337,14 @@ function openModal(card) {
       tags.forEach((t) => { const s = document.createElement('span'); s.textContent = t; ul.appendChild(s); });
       modalInfo.appendChild(ul);
     }
+  }
+  // 작업 과정 · 설명: 빈 줄마다 문단으로 나눠서 글자로만 넣는다
+  const desc = (card.dataset.desc || '').replace(/\r\n?/g, '\n').trim();
+  if (modalInfo && desc) {
+    const box = document.createElement('div');
+    box.className = 'modal-desc';
+    desc.split(/\n{2,}/).forEach((para) => { const p = document.createElement('p'); p.textContent = para.trim(); box.appendChild(p); });
+    modalInfo.appendChild(box);
   }
   modal.setAttribute('aria-label', titleText ? `${titleText} 영상 재생` : '영상 재생');
 

@@ -31,7 +31,7 @@ a { color: inherit; }
   position: sticky; top: 0; z-index: 10;
   display: flex; justify-content: space-between; align-items: center;
   padding: 18px 24px;
-  background: rgba(255, 255, 255, 0.97);
+  background: #fff;   /* 뒤 화면이 비쳐 글자와 겹쳐 보이지 않게 */
   border-bottom: 1px solid var(--line);
 }
 .logo { font-weight: 700; text-decoration: none; letter-spacing: -0.02em; }
@@ -99,8 +99,8 @@ a { color: inherit; }
 /* 영상 팝업 */
 .modal {
   position: fixed; inset: 0; z-index: 100;
-  background: rgba(255, 255, 255, 0.97);
-  display: grid; align-content: center; justify-items: center; padding: 24px; overflow-y: auto;
+  background: #fff;   /* 뒤 화면이 비쳐 글자와 겹쳐 보이지 않게 */
+  display: grid; justify-items: center; padding: 24px; overflow-y: auto; align-content: safe center;
 }
 .modal[hidden] { display: none; }
 .modal { --mw: min(1000px, 100%, calc((100vh - 210px) * 16 / 9)); }   /* 낮은 화면에서도 영상 + 설명이 한 화면에 들어오게 */
@@ -108,11 +108,14 @@ a { color: inherit; }
 .modal-info { width: max(var(--mw), min(320px, 100%)); padding-top: 18px; }
 .modal-info h2 { font-size: 1.3rem; font-weight: 600; }
 .modal-info p { color: var(--muted); margin-top: 4px; }
+.modal-desc { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); max-width: 68ch; }
+.modal-desc p { color: var(--text); line-height: 1.85; white-space: pre-line; margin-top: 0; }
+.modal-desc p + p { margin-top: 14px; }
 .modal-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .modal-tags span { border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; font-size: 0.8rem; color: var(--muted); }
 .modal-body iframe, .modal-body video { display: block; width: 100%; height: 100%; border: 0; }
 .modal-close {
-  position: absolute; top: 16px; right: 20px;
+  position: fixed; top: 16px; right: 20px;
   background: none; border: 0; font-size: 1.5rem; cursor: pointer;
 }
 

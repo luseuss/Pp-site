@@ -230,7 +230,7 @@
     return works;
   }
 
-  const KNOWN = ['order', 'url', 'src', 'thumb', 'title', 'meta', 'tags', 'featured'];
+  const KNOWN = ['order', 'url', 'src', 'thumb', 'title', 'meta', 'tags', 'desc', 'featured'];
   const orderOf = (w) => (typeof w.order === 'number' ? w.order : Infinity);
 
   // "MV, AMV" 같은 글자 → ["MV","AMV"] (빈 칸 제거, 대소문자 다른 중복 제거)
@@ -257,6 +257,7 @@
         title: w.title || '',
         meta: w.meta || '',
         tags: parseTags(Array.isArray(w.tags) ? w.tags.join(',') : (w.tags || '')),
+        desc: typeof w.desc === 'string' ? w.desc : '',
         featured: w.featured === true,
         extra: Object.fromEntries(Object.entries(w).filter(([k]) => !KNOWN.includes(k))),
       }));
@@ -272,6 +273,8 @@
       o.title = it.title.trim();
       o.meta = it.meta.trim();
       if (it.tags.length) o.tags = [...it.tags];
+      const desc = cleanLines(it.desc);
+      if (desc) o.desc = desc;
       if (it.featured) o.featured = true;
       return { ...o, ...it.extra };
     });
@@ -514,6 +517,7 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
       bind('.f-thumb', 'thumb', () => updatePreview(li, it));
       bind('.f-title', 'title');
       bind('.f-meta', 'meta');
+      bind('.f-desc', 'desc');
       // 썸네일 이미지 올리기 / 지우기
       const thumbInput = $('.f-thumb', li), thumbFile = $('.file-thumb', li);
       $('.up-thumb', li).addEventListener('click', () => thumbFile.click());
@@ -937,7 +941,7 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
   $('#tab-works').addEventListener('click', () => showTab('works'));
   $('#tab-site').addEventListener('click', () => showTab('site'));
   $('#add').addEventListener('click', () => {
-    items.push({ type: 'youtube', url: '', src: '', thumb: '', title: '', meta: `${new Date().getFullYear()} · `, tags: [], featured: false, extra: {} });
+    items.push({ type: 'youtube', url: '', src: '', thumb: '', title: '', meta: `${new Date().getFullYear()} · `, tags: [], desc: '', featured: false, extra: {} });
     render();
     const last = list.lastElementChild;
     if (last) { $('.f-url', last).focus(); last.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
