@@ -1,0 +1,7 @@
+{
+  "name": "pp-site-tests",
+  "private": true,
+  "description": "포트폴리오 사이트와 관리 페이지 시험 (Playwright)",
+  "scripts": { "test": "node run.js" },
+  "devDependencies": { "playwright": "^1.50.0" }
+}
