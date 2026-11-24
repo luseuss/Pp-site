@@ -96,27 +96,43 @@ a { color: inherit; }
 
 .site-footer { padding-top: 32px; padding-bottom: 48px; color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); }
 
-/* 영상 팝업 */
+/* 영상 팝업: 화면 전체를 덮지 않고, 어둡게 가린 배경 위에 카드가 떠 있는 모양 */
 .modal {
   position: fixed; inset: 0; z-index: 100;
-  background: #fff;   /* 뒤 화면이 비쳐 글자와 겹쳐 보이지 않게 */
-  display: grid; justify-items: center; padding: 24px; overflow-y: auto; align-content: safe center;
+  background: rgba(17, 17, 17, 0.55);
+  display: grid; place-items: center; padding: 24px;
 }
 .modal[hidden] { display: none; }
-.modal { --mw: min(1000px, 100%, calc((100vh - 210px) * 16 / 9)); }   /* 낮은 화면에서도 영상 + 설명이 한 화면에 들어오게 */
-.modal-body { align-self: start; width: max(var(--mw), min(320px, 100%)); aspect-ratio: 16 / 9; background: #000; }
-.modal-info { width: max(var(--mw), min(320px, 100%)); padding-top: 18px; }
+.modal-wrap {
+  position: relative;
+  /* 낮은 화면에서도 영상이 한 번에 보이도록 (영상 높이 + 여유) */
+  width: max(min(1040px, 100%, calc((100vh - 150px) * 16 / 9)), min(320px, 100%));
+}
+.modal-panel {
+  background: #fff; border-radius: 14px; overflow: hidden auto;
+  max-height: calc(100vh - 48px); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  overscroll-behavior: contain;
+}
+.modal-body { aspect-ratio: 16 / 9; background: #000; }
+.modal-info { padding: 20px 24px 28px; }
+.modal-info:empty { display: none; }
 .modal-info h2 { font-size: 1.3rem; font-weight: 600; }
 .modal-info p { color: var(--muted); margin-top: 4px; }
 .modal-desc { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); max-width: 68ch; }
 .modal-desc p { color: var(--text); line-height: 1.85; white-space: pre-line; margin-top: 0; }
 .modal-desc p + p { margin-top: 14px; }
+.modal-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-top: 24px; }
+.modal-gallery a { display: block; border-radius: 8px; overflow: hidden; background: #f2f2f2; aspect-ratio: 4 / 3; }
+.modal-gallery img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s; }
+.modal-gallery a:hover img, .modal-gallery a:focus-visible img { transform: scale(1.04); }
 .modal-tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .modal-tags span { border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; font-size: 0.8rem; color: var(--muted); }
 .modal-body iframe, .modal-body video { display: block; width: 100%; height: 100%; border: 0; }
 .modal-close {
-  position: fixed; top: 16px; right: 20px;
-  background: none; border: 0; font-size: 1.5rem; cursor: pointer;
+  position: absolute; top: 10px; right: 10px; z-index: 2;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #fff; border: 0; font-size: 1.1rem; cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
 }
 
 @media (max-width: 600px) {
@@ -258,7 +274,7 @@ html.no-anim .hero-video { display: none; }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes zoom { from { opacity: 0; transform: scale(0.96) translateY(10px); } to { opacity: 1; transform: none; } }
 .modal:not([hidden]) { animation: fade 0.25s ease both; }
-.modal:not([hidden]) .modal-body { animation: zoom 0.4s var(--ease) both; }
+.modal:not([hidden]) .modal-wrap { animation: zoom 0.4s var(--ease) both; }
 
 /* 끄기: 관리 페이지에서 끄거나, 운영체제에서 "동작 줄이기"를 켠 경우 */
 html.no-anim { scroll-behavior: auto; }

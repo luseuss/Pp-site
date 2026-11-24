@@ -87,6 +87,13 @@
     .sharecard .txt span { color: var(--muted); font-size: .82rem; line-height: 1.4; }
     .count { float: right; font-variant-numeric: tabular-nums; }
     .count.warn { color: var(--danger); }
+    .galgrid { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin: 6px 0 8px; }
+    .galgrid:empty { display: none; }
+    .galcell { position: relative; aspect-ratio: 4 / 3; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--soft); }
+    .galcell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .galcell .gbtns { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; gap: 2px; padding: 3px; background: rgba(255,255,255,.92); }
+    .galcell .gbtns button { padding: 1px 8px; font-size: .8rem; line-height: 1.4; }
+    .galcell .gbtns .gdel { color: var(--danger); }
     .about-input { height: 160px; font: inherit; line-height: 1.6; margin-top: 0; resize: vertical; }
     textarea { width: 100%; height: 220px; font: .8rem/1.5 ui-monospace, Consolas, monospace; padding: 10px; border: 1px solid var(--line); border-radius: 6px; margin-top: 10px; }
     [hidden] { display: none !important; }
@@ -287,6 +294,10 @@
         <div><label>제목</label><input class="f-title" /></div>
         <div><label>설명 (예: 2026 · 모션 그래픽)</label><input class="f-meta" /></div>
         <div><label>작업 과정 · 설명 (선택 — 영상을 누르면 뜨는 팝업의 영상 아래에 나와요. 빈 줄로 문단을 나눠요)</label><textarea class="f-desc about-input" style="height:110px" placeholder="예) 곡을 듣고 가사의 이미지를 먼저 정리했어요. After Effects 로 타이포 모션을 만들고…"></textarea></div>
+        <div class="g-gal"><label>작업 과정 이미지 (선택 — 팝업의 설명 아래에 격자로 나와요 · 최대 12장 · ◀ ▶ 로 순서 변경)</label>
+          <ul class="galgrid"></ul>
+          <div class="btnrow"><button type="button" class="add-gal">이미지 추가 (여러 장 선택 가능)</button></div>
+          <input type="file" class="file-gal" accept="image/png,image/jpeg,image/webp,image/gif" multiple hidden /></div>
         <div><label>카테고리 (쉼표로 구분, 예: MV, AMV)</label><input class="f-tags" placeholder="MV, AMV" />
           <div class="chips" aria-label="이미 쓴 카테고리"></div></div>
       </div>

@@ -157,6 +157,7 @@ function getTags(work) {
 function buildCard(work) {
   const card = document.createElement('button');
   card.className = 'card';
+  card.dataset.images = (Array.isArray(work.images) ? work.images : []).map((s) => String(s).trim()).filter(isSafeImage).join('\n');   // 작업 과정 이미지 (안전한 경로만)
   card.dataset.desc = typeof work.desc === 'string' ? work.desc : '';   // 팝업에 보여줄 작업 과정·설명
   card.dataset.tags = getTags(work).join('\n');   // 팝업에 보여줄 카테고리 (원래 표기)
   card.tagKeys = new Set(getTags(work).map((t) => t.toLowerCase())); // 필터에서 쓰는 카테고리 (대소문자 구분 X)
@@ -346,6 +347,20 @@ function openModal(card) {
     desc.split(/\n{2,}/).forEach((para) => { const p = document.createElement('p'); p.textContent = para.trim(); box.appendChild(p); });
     modalInfo.appendChild(box);
   }
+  // 작업 과정 이미지: 격자로. 팝업을 열 때만 만들고 닫으면 지워요 (이미지는 화면에 가까워질 때 불러와요)
+  const imgs = (card.dataset.images || '').split('\n').filter(Boolean);
+  if (modalInfo && imgs.length) {
+    const gal = document.createElement('div');
+    gal.className = 'modal-gallery';
+    imgs.forEach((src, i) => {
+      const a = document.createElement('a');
+      a.href = src; a.target = '_blank'; a.rel = 'noopener';   // 누르면 원본을 새 탭에서
+      const im = document.createElement('img');
+      im.src = src; im.alt = `${titleText} 작업 과정 이미지 ${i + 1}`; im.loading = 'lazy'; im.decoding = 'async';
+      a.appendChild(im); gal.appendChild(a);
+    });
+    modalInfo.appendChild(gal);
+  }
   modal.setAttribute('aria-label', titleText ? `${titleText} 영상 재생` : '영상 재생');
 
   lastFocus = document.activeElement;
@@ -374,7 +389,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') { closeModal(); return; }
   if (e.key !== 'Tab') return;
   // 팝업 안에서만 Tab 이 돌게: 처음/끝에서 반대쪽으로 넘겨 준다
-  const f = [...modal.querySelectorAll('button, iframe, video[controls], [tabindex]:not([tabindex="-1"])')];
+  const f = [...modal.querySelectorAll('button, a[href], iframe, video[controls], [tabindex]:not([tabindex="-1"])')];
   if (!f.length) return;
   const first = f[0], last = f[f.length - 1];
   if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }

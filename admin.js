@@ -230,7 +230,8 @@
     return works;
   }
 
-  const KNOWN = ['order', 'url', 'src', 'thumb', 'title', 'meta', 'tags', 'desc', 'featured'];
+  const MAX_GAL = 12;   // 영상 하나당 작업 과정 이미지 최대 장수
+  const KNOWN = ['order', 'url', 'src', 'thumb', 'title', 'meta', 'tags', 'desc', 'images', 'featured'];
   const orderOf = (w) => (typeof w.order === 'number' ? w.order : Infinity);
 
   // "MV, AMV" 같은 글자 → ["MV","AMV"] (빈 칸 제거, 대소문자 다른 중복 제거)
@@ -258,6 +259,7 @@
         meta: w.meta || '',
         tags: parseTags(Array.isArray(w.tags) ? w.tags.join(',') : (w.tags || '')),
         desc: typeof w.desc === 'string' ? w.desc : '',
+        images: Array.isArray(w.images) ? w.images.map((s) => String(s)) : [],
         featured: w.featured === true,
         extra: Object.fromEntries(Object.entries(w).filter(([k]) => !KNOWN.includes(k))),
       }));
@@ -275,6 +277,8 @@
       if (it.tags.length) o.tags = [...it.tags];
       const desc = cleanLines(it.desc);
       if (desc) o.desc = desc;
+      const gal = it.images.map((s) => s.trim()).filter(Boolean);
+      if (gal.length) o.images = gal;
       if (it.featured) o.featured = true;
       return { ...o, ...it.extra };
     });
@@ -442,7 +446,7 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
 
   // 지금 화면에서 더 이상 쓰지 않는 이미지는 메모리에서 놓아 준다 (올릴 목록 + 미리보기용 blob 주소)
   function gcImages() {
-    const used = new Set([...items.map((it) => it.thumb.trim()), site.aboutImage.trim(), site.seo.ogImage.trim()]);
+    const used = new Set([...items.flatMap((it) => [it.thumb.trim(), ...it.images.map((s) => s.trim())]), site.aboutImage.trim(), site.seo.ogImage.trim()]);
     for (const [path, url] of previews) {
       if (!used.has(path)) { URL.revokeObjectURL(url); previews.delete(path); }
     }
@@ -535,6 +539,45 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
         } catch (e) { setMsg(e.message, 'err'); }
       });
       $('.clr-thumb', li).addEventListener('click', () => { it.thumb = ''; thumbInput.value = ''; updatePreview(li, it); updateDirty(); });
+      // 작업 과정 이미지 (격자): 추가 / 순서 / 삭제
+      const galEl = $('.galgrid', li), galFile = $('.file-gal', li);
+      const renderGal = () => {
+        galEl.textContent = '';
+        it.images.forEach((path, gi) => {
+          const cell = document.createElement('li');
+          cell.className = 'galcell';
+          const im = document.createElement('img');
+          im.alt = `작업 과정 이미지 ${gi + 1}`; im.src = previewSrc(path.trim());
+          const bar = document.createElement('div');
+          bar.className = 'gbtns';
+          const mk = (cls, text, label, fn, disabled) => {
+            const bt = document.createElement('button');
+            bt.type = 'button'; bt.className = cls; bt.textContent = text; bt.setAttribute('aria-label', label); bt.disabled = !!disabled;
+            bt.addEventListener('click', fn); return bt;
+          };
+          const mv = (d) => () => { const j = gi + d; [it.images[gi], it.images[j]] = [it.images[j], it.images[gi]]; renderGal(); updateDirty(); };
+          bar.append(
+            mk('gl', '◀', `${gi + 1}번 이미지 앞으로`, mv(-1), gi === 0),
+            mk('gdel', '✕', `${gi + 1}번 이미지 삭제`, () => { it.images.splice(gi, 1); renderGal(); updateDirty(); }),
+            mk('gr', '▶', `${gi + 1}번 이미지 뒤로`, mv(1), gi === it.images.length - 1),
+          );
+          cell.append(im, bar);
+          galEl.appendChild(cell);
+        });
+        $('.add-gal', li).disabled = it.images.length >= MAX_GAL;
+      };
+      $('.add-gal', li).addEventListener('click', () => galFile.click());
+      galFile.addEventListener('change', async () => {
+        const files = [...galFile.files].slice(0, Math.max(0, MAX_GAL - it.images.length));
+        galFile.value = '';
+        const errs = [];
+        for (const f of files) {
+          try { const { path } = await stageImage(f, 'images', 1200); it.images.push(path); } catch (e) { errs.push(`${f.name}: ${e.message}`); }
+        }
+        renderGal(); updateDirty();
+        setMsg(errs.length ? errs.join(' ') : `작업 과정 이미지 ${files.length}장을 준비했어요. 저장할 때 같이 올라가요.`, errs.length ? 'err' : 'ok');
+      });
+      renderGal();
       const tagsInput = $('.f-tags', li);
       tagsInput.value = it.tags.join(', ');
       tagsInput.addEventListener('input', () => { it.tags = parseTags(tagsInput.value); updateDirty(); });
@@ -724,6 +767,10 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
       const t = items[i].thumb.trim();
       if (t && !isSafeImage(t)) return { tab: 'works', text: `${i + 1}번 영상: 썸네일 경로가 올바르지 않아요. (예: thumbs/my-work.jpg)` };
     }
+    for (let i = 0; i < items.length; i++) {
+      const bad = items[i].images.map((s) => s.trim()).filter(Boolean).find((s) => !isSafeImage(s));
+      if (bad) return { tab: 'works', text: `${i + 1}번 영상: 작업 과정 이미지 경로가 올바르지 않아요. (${bad})` };
+    }
     const s = toSite();
     if (s.aboutImage && !isSafeImage(s.aboutImage)) return { tab: 'site', text: '소개 이미지 경로가 올바르지 않아요. (예: images/logo.png)' };
     if (s.seo.siteUrl && !/^https?:\/\/\S+$/i.test(s.seo.siteUrl)) return { tab: 'site', text: '검색·공유의 사이트 주소는 https:// 로 시작해야 해요. (예: https://maru2.pages.dev/)' };
@@ -882,7 +929,7 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
     const cancelled = [];
     try {
       // 이미지: 아직 안 올렸고 지금도 쓰이는 것만 먼저 올린다 (글이 가리키는 파일이 먼저 있어야 해서)
-      const used = new Set([...items.map((it) => it.thumb.trim()), site.aboutImage.trim(), site.seo.ogImage.trim()]);
+      const used = new Set([...items.flatMap((it) => [it.thumb.trim(), ...it.images.map((s) => s.trim())]), site.aboutImage.trim(), site.seo.ogImage.trim()]);
       const todo = [...pendingUploads].filter(([path]) => used.has(path));
       for (const [path, up] of todo) {
         await api('PUT', path, { message: '관리 페이지에서 이미지 올리기', content: await blobToB64(up.blob), branch: settings.branch });
@@ -941,7 +988,7 @@ ${SECTION_KEYS.map((k) => `    ${k}: { show: ${s.sections[k].show}, title: ${q(s
   $('#tab-works').addEventListener('click', () => showTab('works'));
   $('#tab-site').addEventListener('click', () => showTab('site'));
   $('#add').addEventListener('click', () => {
-    items.push({ type: 'youtube', url: '', src: '', thumb: '', title: '', meta: `${new Date().getFullYear()} · `, tags: [], desc: '', featured: false, extra: {} });
+    items.push({ type: 'youtube', url: '', src: '', thumb: '', title: '', meta: `${new Date().getFullYear()} · `, tags: [], desc: '', images: [], featured: false, extra: {} });
     render();
     const last = list.lastElementChild;
     if (last) { $('.f-url', last).focus(); last.scrollIntoView({ block: 'center', behavior: 'smooth' }); }

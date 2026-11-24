@@ -102,10 +102,14 @@
 
   <!-- 영상 재생 팝업(처음엔 숨겨져 있음) -->
   <div id="modal" class="modal" role="dialog" aria-modal="true" aria-label="영상 재생" hidden>
-    <button class="modal-close" aria-label="닫기">✕</button>
-    <div class="modal-body" id="modal-body"></div>
-    <!-- 영상 아래 작품 설명 (제목·설명·카테고리): script.js 가 누른 카드의 내용으로 채워요 -->
-    <div class="modal-info" id="modal-info"></div>
+    <div class="modal-wrap">
+      <button class="modal-close" aria-label="닫기">✕</button>
+      <div class="modal-panel">
+        <div class="modal-body" id="modal-body"></div>
+        <!-- 영상 아래 작품 설명 (제목·설명·카테고리·작업 과정 글·이미지): script.js 가 누른 카드의 내용으로 채워요 -->
+        <div class="modal-info" id="modal-info"></div>
+      </div>
+    </div>
   </div>
 
   <script src="site.js"></script>
