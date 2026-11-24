@@ -20,6 +20,7 @@ const animationsOn = () => !root.classList.contains('no-anim');
 
 const modal = document.getElementById('modal');
 const modalBody = document.getElementById('modal-body');
+const modalInfo = document.getElementById('modal-info');
 const grid = document.getElementById('grid');
 const featuredEl = document.getElementById('featured');
 const filtersEl = document.getElementById('filters');
@@ -156,6 +157,7 @@ function getTags(work) {
 function buildCard(work) {
   const card = document.createElement('button');
   card.className = 'card';
+  card.dataset.tags = getTags(work).join('\n');   // 팝업에 보여줄 카테고리 (원래 표기)
   card.tagKeys = new Set(getTags(work).map((t) => t.toLowerCase())); // 필터에서 쓰는 카테고리 (대소문자 구분 X)
 
   const thumb = document.createElement('div');
@@ -293,6 +295,7 @@ function clearModal() {
   modalBody.querySelectorAll('iframe').forEach((f) => { f.src = 'about:blank'; });
   modalBody.querySelectorAll('video').forEach((v) => { v.pause(); v.removeAttribute('src'); v.load(); });
   modalBody.textContent = '';
+  if (modalInfo) modalInfo.textContent = '';
 }
 
 // 팝업이 열려 있는 동안 뒤쪽(메뉴·본문·푸터)은 키보드·스크린리더가 못 건드리게 잠근다 (inert)
@@ -319,6 +322,22 @@ function openModal(card) {
     video.playsInline = true;
     modalBody.appendChild(video);
   }
+
+  // 영상 아래 작품 설명: 제목 · 설명 · 카테고리 (모두 textContent 로만 넣어요)
+  const title = card.querySelector('h3'), meta = card.querySelector('p');
+  const titleText = title ? title.textContent : '';
+  if (modalInfo) {
+    if (titleText) { const h = document.createElement('h2'); h.textContent = titleText; modalInfo.appendChild(h); }
+    if (meta && meta.textContent) { const m = document.createElement('p'); m.textContent = meta.textContent; modalInfo.appendChild(m); }
+    const tags = (card.dataset.tags || '').split('\n').filter(Boolean);
+    if (tags.length) {
+      const ul = document.createElement('div');
+      ul.className = 'modal-tags';
+      tags.forEach((t) => { const s = document.createElement('span'); s.textContent = t; ul.appendChild(s); });
+      modalInfo.appendChild(ul);
+    }
+  }
+  modal.setAttribute('aria-label', titleText ? `${titleText} 영상 재생` : '영상 재생');
 
   lastFocus = document.activeElement;
   setBehindInert(true);
