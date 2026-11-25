@@ -15,6 +15,19 @@ const stripFeatured = (t) => t.replace(/\n\s*featured: true,/g, '');
 const evalWorks = (t) => new Function(`${t}\nreturn WORKS;`)();
 const evalSite = (t) => new Function(`${t}\nreturn SITE;`)();
 
+// _headers 파일 → [[경로, {헤더: 값}], ...]
+function parseHeaders(file) {
+  if (!fs.existsSync(file)) return [];
+  const rules = []; let cur = null;
+  for (const line of fs.readFileSync(file, 'utf8').split(/\r?\n/)) {
+    if (!line.trim() || line.trim().startsWith('#')) continue;
+    if (!/^\s/.test(line)) { cur = [line.trim(), {}]; rules.push(cur); continue; }
+    const i = line.indexOf(':');
+    if (cur && i > 0) cur[1][line.slice(0, i).trim().toLowerCase()] = line.slice(i + 1).trim();
+  }
+  return rules;
+}
+
 async function start() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pp-site-'));
   fs.cpSync(REPO, dir, { recursive: true, filter: (s) => !/[\\/](\.git|tests|node_modules|videos)([\\/]|$)/.test(s) });
@@ -23,11 +36,17 @@ async function start() {
   const baseIndex = fs.readFileSync(path.join(REPO, 'index.html'), 'utf8');
   fs.writeFileSync(path.join(dir, 'works.js'), baseWorks);
 
+  // Cloudflare Pages 의 _headers 를 흉내 내요: 경로가 맞는 규칙의 헤더를 응답에 붙임 (/* 는 전부, 그 외는 정확히 같은 경로)
+  const headerRules = parseHeaders(path.join(dir, '_headers'));
   const server = http.createServer((req, res) => {
-    const p = path.join(dir, decodeURIComponent(new URL(req.url, 'http://x').pathname).replace(/^\/+/, '') || 'index.html');
+    const reqPath = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+    let p = path.join(dir, reqPath.replace(/^\/+/, '') || 'index.html');
+    if (!fs.existsSync(p) && fs.existsSync(`${p}.html`)) p = `${p}.html`;   // /admin → admin.html (Cloudflare 의 깔끔한 주소)
     const file = fs.existsSync(p) && fs.statSync(p).isDirectory() ? path.join(p, 'index.html') : p;
     if (!file.startsWith(dir) || !fs.existsSync(file)) { res.writeHead(404); return res.end('not found'); }
-    res.writeHead(200, { 'content-type': MIME[path.extname(file)] || 'application/octet-stream', 'cache-control': 'no-store' });
+    const extra = {};
+    for (const [pat, hs] of headerRules) if (pat === '/*' || pat === reqPath) Object.assign(extra, hs);
+    res.writeHead(200, { 'content-type': MIME[path.extname(file)] || 'application/octet-stream', 'cache-control': 'no-store', ...extra });
     fs.createReadStream(file).pipe(res);
   });
   await new Promise((r) => server.listen(0, '127.0.0.1', r));
@@ -89,4 +108,4 @@ const token = async (p) => { await p.evaluate(() => { document.querySelector('#s
 const saved = (p) => p.waitForFunction(() => /저장했어요|취소/.test(document.querySelector('#msg').textContent));
 const msgOf = (p) => p.locator('#msg').textContent();
 
-module.exports = { REPO, start, evalWorks, evalSite, stripFeatured, token, saved, msgOf };
+module.exports = { REPO, parseHeaders, start, evalWorks, evalSite, stripFeatured, token, saved, msgOf };

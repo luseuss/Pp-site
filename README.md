@@ -85,5 +85,11 @@
 mp4는 `url` 대신 `src: "videos/파일명.mp4"`, 썸네일은 `thumb: "thumbs/파일명.jpg"`(선택).
 순서는 `order` 번호가 작을수록 앞입니다(번호 없으면 맨 뒤). 맨 앞에 넣으려면 `order: 0`. 숨기려면 줄 앞에 `//`.
 
+## 보안
+- `_headers` (Cloudflare Pages 주소에 적용): 이 사이트가 불러올 수 있는 것만 허용하는 규칙(CSP), 다른 사이트가 액자로 끼워 넣는 것 막기, 기타 보안 헤더. 같은 규칙을 `index.html` / `admin.html`의 `<meta http-equiv="Content-Security-Policy">`에도 넣어서 GitHub Pages 주소에서도 적용됩니다. (둘을 바꿀 때는 같이! `tests`가 같은지 확인해요)
+- 사이트는 자바스크립트 실행을 같은 사이트의 파일로만 허용합니다. 유튜브 영상(iframe), https 이미지·mp4만 외부에서 받습니다. `index.html`의 짧은 인라인 스크립트는 해시로 허용되어 있어서, 그 줄을 고치면 CSP의 해시도 갱신해야 합니다.
+- 관리 페이지는 같은 사이트와 `api.github.com` 으로만 연결할 수 있습니다. (`/admin` 자체를 잠그려면 Cloudflare Access 를 쓰세요)
+- 외부 주소의 영상·이미지를 쓰려면 https 여야 합니다.
+
 ## 배포 (무료)
 GitHub Pages: Settings → Pages. 주소는 저장소 이름과 대소문자까지 같아야 합니다.

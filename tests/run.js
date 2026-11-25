@@ -1,6 +1,6 @@
 // 전체 시험 실행:  node tests/run.js   (처음에는 tests 폴더에서 npm install)
 const { start } = require('./harness');
-const files = ['seo.unit.test.js', 'site.test.js', 'admin.test.js'];
+const files = ['seo.unit.test.js', 'security.test.js', 'site.test.js', 'admin.test.js'];
 
 (async () => {
   let ok = 0, bad = 0;

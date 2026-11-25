@@ -7,6 +7,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- 보안: 이 페이지가 불러올 수 있는 것을 제한해요. 바꿀 때는 _headers 의 CSP 와 같게 맞춰 주세요 (GitHub Pages 주소에서도 적용되도록 meta 로도 넣어요) -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.github.com; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'" />
   <meta name="robots" content="noindex, nofollow" />
   <title>관리 | MaRu_2</title>
   <style>

@@ -1,0 +1,25 @@
+# Cloudflare Pages 보안 헤더 (이 주소 maru2.pages.dev 에만 적용돼요. GitHub Pages 주소는 헤더를 못 바꿔서 각 html 의 <meta> CSP 가 대신 막아 줘요.)
+# 고칠 때 주의: CSP 를 바꾸면 index.html / admin.html 의 <meta http-equiv="Content-Security-Policy"> 도 같이 바꿔야 해요. (tests 가 둘이 같은지 확인해요)
+# - 사이트(/): 같은 사이트의 파일 + 유튜브 영상(iframe) + 이미지/mp4(https) 만 허용, 그 외 스크립트·외부 연결은 막아요.
+# - 관리 페이지(/admin): GitHub 저장(api.github.com)과 작업 파일(works.js·site.js)을 읽는 데 필요한 것만 허용해요.
+# CSP 는 겹치면 둘 다 적용되므로 경로별로 한 번씩만 적어요.
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+
+/
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-/x7W7R75k8Roq0WaVRQX9blP4OufE5xbAdzklGxsgpw='; style-src 'self'; img-src 'self' data: https:; media-src 'self' https:; frame-src https://www.youtube.com https://www.youtube-nocookie.com; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+
+/index.html
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-/x7W7R75k8Roq0WaVRQX9blP4OufE5xbAdzklGxsgpw='; style-src 'self'; img-src 'self' data: https:; media-src 'self' https:; frame-src https://www.youtube.com https://www.youtube-nocookie.com; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+
+/admin
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.github.com; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
+  Cache-Control: no-store
+
+/admin.html
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://api.github.com; font-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'
+  Cache-Control: no-store
