@@ -23,6 +23,10 @@ const modalBody = document.getElementById('modal-body');
 const modalInfo = document.getElementById('modal-info');
 const grid = document.getElementById('grid');
 const featuredEl = document.getElementById('featured');
+const workTools = document.getElementById('work-tools');
+const workSearch = document.getElementById('work-search');
+const workSort = document.getElementById('work-sort');
+const workEmpty = document.getElementById('work-empty');
 const filtersEl = document.getElementById('filters');
 const filterStatus = document.getElementById('filter-status');
 const aboutEl = document.getElementById('about-text');
@@ -160,6 +164,9 @@ function buildCard(work) {
   card.dataset.images = (Array.isArray(work.images) ? work.images : []).map((s) => String(s).trim()).filter(isSafeImage).join('\n');   // 작업 과정 이미지 (안전한 경로만)
   card.dataset.desc = typeof work.desc === 'string' ? work.desc : '';   // 팝업에 보여줄 작업 과정·설명
   card.dataset.tags = getTags(work).join('\n');   // 팝업에 보여줄 카테고리 (원래 표기)
+  card.searchText = [work.title, work.meta, ...getTags(work)].filter((s) => typeof s === 'string').join(' ').toLowerCase();   // 검색용
+  const yr = String(work.meta || '').match(/(?:^|\D)((?:19|20)\d\d)(?!\d)/);
+  card.dataset.year = yr ? yr[1] : '';   // 최신순/오래된순 정렬용 (설명(meta)에 적은 연도)
   card.tagKeys = new Set(getTags(work).map((t) => t.toLowerCase())); // 필터에서 쓰는 카테고리 (대소문자 구분 X)
 
   const thumb = document.createElement('div');
@@ -237,30 +244,38 @@ if (typeof WORKS !== 'undefined') {
   sorted.forEach((work) => {
     const card = buildCard(work);
     if (!card) return;
+    card.dataset.pos = String(cards.length);   // 내가 정한 순서 (정렬을 "기본"으로 되돌릴 때)
     grid.appendChild(card);
     cards.push(card);
     getTags(work).forEach((t) => { if (!labels.has(t.toLowerCase())) labels.set(t.toLowerCase(), t); });
   });
 
+  // 지금 조건(카테고리 + 검색)에 맞는 카드만 보이게 한다
+  const buttons = [];
+  let activeKey = '', query = '', statusTimer = 0;
+  const apply = (animate, announce = animate) => {
+    cards.forEach((c) => { c.hidden = !((activeKey === '' || c.tagKeys.has(activeKey)) && (!query || c.searchText.includes(query))); });
+    buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.key === activeKey)));
+    const shown = cards.filter((c) => !c.hidden);
+    cards.filter((c) => c.hidden).forEach((c) => c.classList.remove('pop'));   // 숨겨진 카드는 효과 표시도 정리
+    if (workEmpty) workEmpty.hidden = shown.length > 0 || cards.length === 0;
+    // 스크린리더에 결과를 알려 준다 (처음 화면이 그려질 때는 말하지 않음, 타이핑 중에는 잠깐 기다렸다가)
+    if (announce && filterStatus) {
+      clearTimeout(statusTimer);
+      statusTimer = setTimeout(() => { filterStatus.textContent = `${activeKey ? labels.get(activeKey) : '전체'}${query ? ` "${query}" 검색` : ''} 영상 ${shown.length}개`; }, query ? 400 : 0);
+    }
+    if (animate && animationsOn()) {
+      shown.forEach((c, i) => {
+        c.classList.remove('pop');
+        void c.offsetWidth;   // 같은 애니메이션을 다시 시작하기 위한 트릭
+        c.style.setProperty('--d', `${Math.min(i, 8) * 60}ms`);
+        c.classList.add('pop');   // 끝나면 아래의 animationend 처리(한 곳)가 지워줘요
+      });
+    }
+  };
+
   // 카테고리가 하나라도 있으면 "전체 / MV / AMV …" 버튼을 만든다
   if (labels.size > 0) {
-    const buttons = [];
-    const select = (key, animate = true) => {
-      cards.forEach((c) => { c.hidden = key !== '' && !c.tagKeys.has(key); });
-      buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.key === key)));
-      // 보이는 카드들이 차례로 다시 나타나게 한다
-      cards.filter((c) => c.hidden).forEach((c) => c.classList.remove('pop'));   // 숨겨진 카드는 효과 표시도 정리
-      // 스크린리더에 결과를 알려 준다 (처음 화면이 그려질 때는 말하지 않음)
-      if (animate && filterStatus) filterStatus.textContent = `${key ? labels.get(key) : '전체'} 영상 ${cards.filter((c) => !c.hidden).length}개`;
-      if (animate && animationsOn()) {
-        cards.filter((c) => !c.hidden).forEach((c, i) => {
-          c.classList.remove('pop');
-          void c.offsetWidth;   // 같은 애니메이션을 다시 시작하기 위한 트릭
-          c.style.setProperty('--d', `${Math.min(i, 8) * 60}ms`);
-          c.classList.add('pop');   // 끝나면 아래의 animationend 처리(한 곳)가 지워줘요
-        });
-      }
-    };
     [['', '전체'], ...labels].forEach(([key, label]) => {
       const b = document.createElement('button');
       b.type = 'button';
@@ -273,11 +288,36 @@ if (typeof WORKS !== 'undefined') {
     // 버튼마다가 아니라 한 곳에서 클릭을 처리 (리스너 수를 늘리지 않음)
     filtersEl.addEventListener('click', (e) => {
       const b = e.target.closest('.filter');
-      if (b) select(b.dataset.key);
+      if (b) { activeKey = b.dataset.key; apply(true); }
     });
     filtersEl.hidden = false;
-    select('', false);
   }
+
+  // 검색 · 정렬: 영상이 4개 이상일 때만 (적을 땐 필요 없어요)
+  if (cards.length >= 4 && workTools && workSearch && workSort) {
+    const hasYear = cards.some((c) => c.dataset.year);
+    [['', '내가 정한 순서'], ...(hasYear ? [['new', '최신순'], ['old', '오래된순']] : []), ['title', '제목순']].forEach(([v, text]) => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = text;
+      workSort.appendChild(o);
+    });
+    const yearOf = (c) => (c.dataset.year ? Number(c.dataset.year) : null);
+    const pos = (c) => Number(c.dataset.pos);
+    const sorters = {
+      '': (a, b) => pos(a) - pos(b),
+      title: (a, b) => a.querySelector('h3').textContent.localeCompare(b.querySelector('h3').textContent, 'ko') || pos(a) - pos(b),
+      // 연도가 없는 영상은 최신순/오래된순 모두 맨 뒤
+      new: (a, b) => (yearOf(b) ?? -Infinity) - (yearOf(a) ?? -Infinity) || pos(a) - pos(b),
+      old: (a, b) => (yearOf(a) ?? Infinity) - (yearOf(b) ?? Infinity) || pos(a) - pos(b),
+    };
+    workSort.addEventListener('change', () => {
+      [...cards].sort(sorters[workSort.value] || sorters['']).forEach((c) => grid.appendChild(c));   // 카드를 새로 만들지 않고 자리만 옮겨요
+      if (filterStatus) filterStatus.textContent = `정렬: ${workSort.options[workSort.selectedIndex].text}`;
+    });
+    workSearch.addEventListener('input', () => { query = workSearch.value.trim().toLowerCase(); apply(false, true); });
+    workTools.hidden = false;
+  }
+  apply(false);
 }
 
 // 카드 클릭은 grid 한 곳에서 처리 (카드마다 리스너를 달지 않음)
@@ -304,10 +344,40 @@ function clearModal() {
 const setBehindInert = (on) => document.querySelectorAll('.site-header, main, .site-footer').forEach((el) => { el.inert = on; });
 const closeBtn = modal.querySelector('.modal-close');
 let lastFocus = null;   // 팝업을 열기 전에 포커스가 있던 곳 (닫을 때 돌아가려고)
+let currentKey = '';    // 지금 팝업에 열린 영상의 구분값 (유튜브 id 또는 mp4 경로)
+let copyTimer = 0;
+const navPrev = modal.querySelector('.nav-prev'), navNext = modal.querySelector('.nav-next');
+const navCount = modal.querySelector('.nav-count'), navLink = modal.querySelector('.nav-link');
+const keyOf = (card) => (card.dataset.type === 'youtube' ? card.dataset.id : card.dataset.src) || '';
+const hashFor = (key) => `#v=${encodeURIComponent(key)}`;
+// 이전/다음은 "지금 화면에 보이는 목록"(카테고리·검색·정렬이 반영된 순서) 기준
+const visibleCards = () => [...grid.querySelectorAll('.card:not([hidden])')];
+const setHash = (h) => { try { history.replaceState(null, '', h || `${location.pathname}${location.search}`); } catch (e) { /* 막힌 환경: 주소 갱신만 건너뜀 */ } };
+
+function updateNav() {
+  const list = visibleCards();
+  const i = list.findIndex((c) => keyOf(c) === currentKey);
+  const many = i >= 0 && list.length > 1;
+  navPrev.hidden = navNext.hidden = navCount.hidden = !many;
+  if (many) {
+    navPrev.disabled = i === 0;
+    navNext.disabled = i === list.length - 1;
+    navCount.textContent = `${i + 1} / ${list.length}`;
+  }
+  clearTimeout(copyTimer);
+  navLink.textContent = '링크 복사';
+}
+function step(d) {
+  const list = visibleCards();
+  const i = list.findIndex((c) => keyOf(c) === currentKey);
+  if (i < 0 || !list[i + d]) return;
+  openModal(list[i + d]);
+}
 
 // 팝업 열기: 카드의 data-type 에 따라 다른 플레이어를 만든다
 function openModal(card) {
   const type = card.dataset.type;
+  const wasHidden = modal.hidden;   // 이미 열려 있으면(이전/다음) 열기 처리는 건너뛰고 내용만 바꾼다
   clearModal();
 
   if (type === 'youtube') {
@@ -363,17 +433,28 @@ function openModal(card) {
   }
   modal.setAttribute('aria-label', titleText ? `${titleText} 영상 재생` : '영상 재생');
 
-  lastFocus = document.activeElement;
-  setBehindInert(true);
-  modal.hidden = false;
-  document.body.style.overflow = 'hidden'; // 뒤 화면 스크롤 막기
-  closeBtn.focus({ preventScroll: true }); // 키보드·스크린리더 사용자가 팝업 안으로 들어오게
+  currentKey = keyOf(card);
+  updateNav();
+  setHash(hashFor(currentKey));   // 주소에 #v=… 를 붙여서, 이 주소를 보내면 이 영상이 바로 열려요
+  if (wasHidden) {
+    lastFocus = document.activeElement;
+    setBehindInert(true);
+    modal.hidden = false;
+    document.body.style.overflow = 'hidden'; // 뒤 화면 스크롤 막기
+    closeBtn.focus({ preventScroll: true }); // 키보드·스크린리더 사용자가 팝업 안으로 들어오게
+  } else {
+    modal.querySelector('.modal-panel').scrollTop = 0;
+  }
 }
 
 // 팝업 닫기: 안의 내용도 비워야 영상 소리가 멈춘다
 function closeModal() {
+  closeLightbox();
   modal.hidden = true;
   clearModal();
+  currentKey = '';
+  clearTimeout(copyTimer);
+  if (location.hash.startsWith('#v=')) setHash('');
   setBehindInert(false);
   document.body.style.overflow = '';
   // 열기 전에 있던 곳(영상 카드)으로 포커스를 돌려보낸다. 그 카드가 사라졌거나 숨겨졌으면 건너뜀
@@ -384,12 +465,85 @@ function closeModal() {
 // 닫기 버튼, 배경 클릭, ESC 키로 닫기
 modal.querySelector('.modal-close').addEventListener('click', closeModal);
 modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+navPrev.addEventListener('click', () => step(-1));
+navNext.addEventListener('click', () => step(1));
+navLink.addEventListener('click', async () => {
+  const url = `${location.origin}${location.pathname}${hashFor(currentKey)}`;
+  let ok = false;
+  try { await navigator.clipboard.writeText(url); ok = true; } catch (e) { /* 클립보드가 막힘: 아래에서 주소를 직접 보여줘요 */ }
+  if (!ok) { window.prompt('아래 주소를 복사하세요 (Ctrl+C)', url); return; }
+  navLink.textContent = '복사했어요 ✓';
+  clearTimeout(copyTimer);
+  copyTimer = setTimeout(() => { navLink.textContent = '링크 복사'; }, 1800);
+});
+
+// 작업 과정 이미지 크게 보기 (라이트박스)
+const lightbox = document.getElementById('lightbox');
+const lbImg = lightbox.querySelector('img'), lbCount = lightbox.querySelector('.lb-count');
+const lbPrev = lightbox.querySelector('.lb-prev'), lbNext = lightbox.querySelector('.lb-next'), lbClose = lightbox.querySelector('.lb-close');
+let lbList = [], lbIdx = 0, lbFrom = null;
+function showLightbox(i) {
+  lbIdx = i;
+  const a = lbList[i];
+  lbImg.src = a.getAttribute('href');
+  lbImg.alt = (a.querySelector('img') || {}).alt || '';
+  lbCount.textContent = `${i + 1} / ${lbList.length}`;
+  lbPrev.disabled = i === 0;
+  lbNext.disabled = i === lbList.length - 1;
+  lbPrev.hidden = lbNext.hidden = lbList.length < 2;
+}
+function openLightbox(i, from) {
+  lbList = [...modalInfo.querySelectorAll('.modal-gallery a')];
+  if (!lbList[i]) return;
+  lbFrom = from;
+  showLightbox(i);
+  lightbox.hidden = false;
+  modal.inert = true;   // 뒤의 팝업은 잠가서 키보드가 새어 나가지 않게
+  lbClose.focus({ preventScroll: true });
+}
+function closeLightbox() {
+  if (lightbox.hidden) return;
+  lightbox.hidden = true;
+  lbImg.removeAttribute('src');   // 큰 이미지 메모리를 놓아 준다
+  lbList = [];
+  modal.inert = false;
+  if (lbFrom && lbFrom.isConnected) lbFrom.focus({ preventScroll: true });
+  lbFrom = null;
+}
+lbClose.addEventListener('click', closeLightbox);
+lbPrev.addEventListener('click', () => showLightbox(lbIdx - 1));
+lbNext.addEventListener('click', () => showLightbox(lbIdx + 1));
+lightbox.addEventListener('click', (e) => { if (e.target === lightbox || e.target.tagName === 'FIGURE') closeLightbox(); });
+modalInfo.addEventListener('click', (e) => {
+  const a = e.target.closest('.modal-gallery a');
+  if (!a || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey) return;   // Ctrl/Cmd+클릭은 새 탭으로 (원래 동작)
+  e.preventDefault();
+  openLightbox([...modalInfo.querySelectorAll('.modal-gallery a')].indexOf(a), a);
+});
+
 document.addEventListener('keydown', (e) => {
+  if (!lightbox.hidden) {   // 이미지 크게 보기가 열려 있으면 그쪽이 먼저
+    if (e.key === 'Escape') closeLightbox();
+    else if (e.key === 'ArrowLeft' && !lbPrev.disabled && !lbPrev.hidden) showLightbox(lbIdx - 1);
+    else if (e.key === 'ArrowRight' && !lbNext.disabled && !lbNext.hidden) showLightbox(lbIdx + 1);
+    else if (e.key === 'Tab') {
+      const f = [lbClose, lbPrev, lbNext].filter((b) => !b.disabled && !b.hidden);
+      const i = f.indexOf(document.activeElement);
+      e.preventDefault();
+      f[(i + (e.shiftKey ? -1 : 1) + f.length) % f.length].focus();
+    }
+    return;
+  }
   if (modal.hidden) return;
   if (e.key === 'Escape') { closeModal(); return; }
+  // ← → 로 이전/다음 작품 (영상 컨트롤이나 입력칸에 포커스가 있을 땐 그쪽 동작을 우선)
+  if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !e.altKey && !e.ctrlKey && !e.metaKey && !/^(VIDEO|INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) {
+    step(e.key === 'ArrowLeft' ? -1 : 1);
+    return;
+  }
   if (e.key !== 'Tab') return;
   // 팝업 안에서만 Tab 이 돌게: 처음/끝에서 반대쪽으로 넘겨 준다
-  const f = [...modal.querySelectorAll('button, a[href], iframe, video[controls], [tabindex]:not([tabindex="-1"])')];
+  const f = [...modal.querySelectorAll('button:not([hidden]):not(:disabled), a[href], iframe, video[controls], [tabindex]:not([tabindex="-1"])')];
   if (!f.length) return;
   const first = f[0], last = f[f.length - 1];
   if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
@@ -547,3 +701,17 @@ document.addEventListener('keydown', (e) => {
     end();
   });
 })();
+
+// 주소에 #v=영상 이 있으면 (공유받은 링크) 그 영상을 바로 연다. 같은 탭에서 주소만 바뀌어도 따라간다.
+function openFromHash() {
+  const m = location.hash.match(/^#v=(.+)$/);
+  if (!m) { if (!modal.hidden && currentKey) closeModal(); return; }
+  let key = '';
+  try { key = decodeURIComponent(m[1]); } catch (e) { return; }
+  if (modal.hidden || key !== currentKey) {
+    const card = [...grid.querySelectorAll('.card'), ...(featuredEl ? featuredEl.querySelectorAll('.card') : [])].find((c) => keyOf(c) === key);
+    if (card) openModal(card);
+  }
+}
+window.addEventListener('hashchange', openFromHash);
+openFromHash();

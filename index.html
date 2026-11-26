@@ -81,12 +81,19 @@
       <!-- 대표 영상: works.js 에서 featured: true 인 영상 하나가 여기에 크게 나와요 (없으면 안 보여요) -->
       <div class="featured" id="featured" hidden></div>
 
+      <!-- 검색 · 정렬: 영상이 4개 이상일 때만 script.js 가 보여줘요 -->
+      <div class="work-tools" id="work-tools" hidden>
+        <input type="search" id="work-search" placeholder="영상 검색 (제목·설명·카테고리)" aria-label="영상 검색" autocomplete="off" maxlength="60" />
+        <select id="work-sort" aria-label="정렬"></select>
+      </div>
+
       <!-- 카테고리 버튼: works.js 의 tags 로 자동 생성돼요 (tags 가 하나도 없으면 안 보여요) -->
       <div class="filters" id="filters" role="group" aria-label="카테고리" hidden></div>
       <p class="sr-only" id="filter-status" role="status" aria-live="polite"></p>
 
       <!-- 카드는 works.js 의 목록으로 자동 생성돼요. 영상 추가는 관리 페이지(admin.html)나 works.js 에서! -->
       <div class="grid" id="grid"></div>
+      <p class="work-empty" id="work-empty" hidden>조건에 맞는 영상이 없어요.</p>
     </section>
 
 
@@ -108,10 +115,24 @@
       <button class="modal-close" aria-label="닫기">✕</button>
       <div class="modal-panel">
         <div class="modal-body" id="modal-body"></div>
+        <!-- 이전/다음 작품 · 이 작품의 링크 복사 (지금 보이는 목록 기준) -->
+        <div class="modal-nav" id="modal-nav">
+          <button type="button" class="nav-prev">← 이전</button>
+          <span class="nav-mid"><span class="nav-count" aria-live="polite"></span><button type="button" class="nav-link">링크 복사</button></span>
+          <button type="button" class="nav-next">다음 →</button>
+        </div>
         <!-- 영상 아래 작품 설명 (제목·설명·카테고리·작업 과정 글·이미지): script.js 가 누른 카드의 내용으로 채워요 -->
         <div class="modal-info" id="modal-info"></div>
       </div>
     </div>
+  </div>
+
+  <!-- 이미지 크게 보기 (작업 과정 이미지를 누르면) -->
+  <div id="lightbox" class="lightbox" role="dialog" aria-modal="true" aria-label="이미지 크게 보기" hidden>
+    <button type="button" class="lb-close" aria-label="닫기">✕</button>
+    <button type="button" class="lb-prev" aria-label="이전 이미지">‹</button>
+    <figure><img alt="" /><figcaption class="lb-count"></figcaption></figure>
+    <button type="button" class="lb-next" aria-label="다음 이미지">›</button>
   </div>
 
   <script src="site.js"></script>

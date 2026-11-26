@@ -48,11 +48,13 @@ module.exports = async (h, check) => {
     const btns = sp.locator('#filters button');
     if (await btns.count() > 1) {
       await btns.nth(1).click();
+      await sp.waitForFunction(() => /영상 \d+개$/.test(document.querySelector('#filter-status').textContent));
       const st = await sp.locator('#filter-status').textContent();
       const vis = await sp.locator('.card:not([hidden])').count();
       check('A11Y filter announces result count (live region)', new RegExp(`영상 ${vis}개$`).test(st) && (await sp.locator('#filter-status').getAttribute('aria-live')) === 'polite', st);
       await btns.nth(0).click();
-      check('A11Y "all" filter announced', /^전체 영상 \d+개$/.test(await sp.locator('#filter-status').textContent()));
+      await sp.waitForFunction(() => /^전체 영상 \d+개$/.test(document.querySelector('#filter-status').textContent));
+      check('A11Y "all" filter announced', true);
     }
     const contrast = await sp.evaluate(() => {
       const lum = (c) => { const m = c.match(/[\d.]+/g).map(Number); const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(m[0]) + 0.7152 * f(m[1]) + 0.0722 * f(m[2]); };
@@ -188,6 +190,133 @@ module.exports = async (h, check) => {
     await sp.evaluate(() => window.scrollTo({ top: document.querySelector('#work').offsetTop + 600, behavior: 'instant' }));
     await sp.waitForFunction(() => !document.querySelector('.hero-video video'));
     check('HERO mp4 removed when off-screen', true);
+    await sp.close();
+    h.reset();
+  }
+
+  // ----- 검색 · 정렬 -----
+  {
+    // 연도가 다른 영상 + 제목이 다른 영상으로 맞춘 시험용 목록 (5개)
+    const mk = (o, title, meta, tags, extra = '') => `  {\n    order: ${o},\n    url: "https://youtu.be/vid${o}abcdefg",\n    title: "${title}",\n    meta: "${meta}",\n    tags: [${tags}],${extra}\n  },`;
+    const list = [mk(1, 'Charlie 영상', '2024 · 모션', '"MV"'), mk(2, 'alpha 작품', '2026 · 타이포', '"AMV"'), mk(3, 'Bravo', '2025 · 합작', '"MV", "합작"'), mk(4, '다람쥐', '연도 없음', '"MV"'), mk(5, '가나다 영상', '2023 · 로고', '"AMV"')].join('\n');
+    h.setFile('works.js', `const WORKS = [\n${list}\n];\n`);
+    const sp = await h.site(1100, 900);
+    await sp.evaluate(() => document.querySelector('#grid').scrollIntoView());
+    const titles = () => sp.locator('#grid .card:not([hidden]) h3').allTextContents();
+    check('SRCH tools visible with 5 videos; sort has year options', await sp.locator('#work-tools').isVisible() && (await sp.locator('#work-sort option').allTextContents()).join() === '내가 정한 순서,최신순,오래된순,제목순');
+    await sp.locator('#work-sort').selectOption('new');
+    check('SORT newest first by the year in meta; no-year video last', (await titles()).join() === 'alpha 작품,Bravo,Charlie 영상,가나다 영상,다람쥐', (await titles()).join());
+    await sp.locator('#work-sort').selectOption('old');
+    check('SORT oldest first; no-year video still last', (await titles()).join() === '가나다 영상,Charlie 영상,Bravo,alpha 작품,다람쥐', (await titles()).join());
+    await sp.locator('#work-sort').selectOption('title');
+    check('SORT by title (Korean collation: 한글 먼저, 그다음 영문 abc 순)', (await titles()).join() === '가나다 영상,다람쥐,alpha 작품,Bravo,Charlie 영상', (await titles()).join());
+    await sp.locator('#work-sort').selectOption('');
+    check('SORT back to my own order', (await titles()).join() === 'Charlie 영상,alpha 작품,Bravo,다람쥐,가나다 영상');
+    check('SORT keeps the same 5 card elements (moved, not recreated) and tab order follows', await sp.locator('#grid .card').count() === 5);
+    await sp.locator('#work-search').fill('  BRAVO ');
+    check('SRCH case-insensitive, trims; title match', (await titles()).join() === 'Bravo');
+    await sp.locator('#work-search').fill('타이포');
+    check('SRCH matches meta text', (await titles()).join() === 'alpha 작품');
+    await sp.locator('#work-search').fill('합작');
+    check('SRCH matches tags', (await titles()).join() === 'Bravo');
+    await sp.locator('#work-search').fill('없는검색어');
+    check('SRCH no match → empty message shown, grid empty', await sp.locator('#work-empty').isVisible() && (await titles()).length === 0);
+    await sp.locator('#work-search').fill('');
+    check('SRCH clearing restores all, empty message hidden', (await titles()).length === 5 && await sp.locator('#work-empty').isHidden());
+    // 카테고리와 함께
+    await sp.locator('#filters button', { hasText: 'AMV' }).click();
+    await sp.locator('#work-search').fill('영상');
+    check('SRCH combines with category filter (AMV + "영상")', (await titles()).join() === '가나다 영상', (await titles()).join());
+    await sp.waitForFunction(() => /AMV "영상" 검색 영상 1개/.test(document.querySelector('#filter-status').textContent));
+    check('SRCH result announced for screen readers (debounced)', true);
+    await sp.locator('#work-search').fill(''); await sp.locator('#filters button').first().click();
+    await sp.locator('#work-sort').selectOption('title');
+    // 필터·정렬 결과가 팝업의 이전/다음 목록이 된다
+    await sp.locator('#work-search').fill('영상');
+    await sp.locator('#grid .card:not([hidden])').first().click(); await sp.waitForTimeout(600);
+    check('NAV popup count follows the visible list (search "영상" + title sort → 2 items)', (await sp.locator('.nav-count').textContent()) === '1 / 2' && await sp.locator('.nav-prev').isDisabled() && await sp.locator('.nav-next').isEnabled());
+    await sp.locator('.nav-next').click();
+    check('NAV next opens the other visible video in sorted order', (await sp.locator('#modal-info h2').textContent()) === 'Charlie 영상' && (await sp.locator('.nav-count').textContent()) === '2 / 2' && await sp.locator('.nav-next').isDisabled());
+    await sp.keyboard.press('Escape');
+    await sp.close();
+
+    // 영상이 3개면 검색·정렬은 숨김
+    h.setFile('works.js', `const WORKS = [\n${[mk(1, 'A', '2024', '"MV"'), mk(2, 'B', '2025', '"MV"'), mk(3, 'C', '2026', '"MV"')].join('\n')}\n];\n`);
+    const s3 = await h.site();
+    check('SRCH hidden when fewer than 4 videos', await s3.locator('#work-tools').isHidden());
+    await s3.close();
+    // 연도가 하나도 없으면 최신순/오래된순 선택지가 없음
+    h.setFile('works.js', `const WORKS = [\n${[1, 2, 3, 4].map((i) => mk(i, `T${i}`, '메모', '"MV"')).join('\n')}\n];\n`);
+    const s4 = await h.site();
+    check('SORT year options hidden when no video has a year', (await s4.locator('#work-sort option').allTextContents()).join() === '내가 정한 순서,제목순');
+    await s4.close();
+    h.reset();
+  }
+
+  // ----- 팝업: 이전/다음, 키보드, 공유 링크, 라이트박스 -----
+  {
+    const w = h.baseWorks.replace(/order: 2,/, 'order: 2,\n    images: ["images/logo.png", "images/og.png", "images/logo.png"],');
+    h.setFile('works.js', w);
+    const sp = await h.site(1280, 800);
+    await sp.context().grantPermissions(['clipboard-read', 'clipboard-write'], { origin: h.base });
+    const cardsN = await sp.locator('#grid .card').count();
+    const titleOf = (i) => sp.locator('#grid .card').nth(i).locator('h3').textContent();
+    await sp.evaluate(() => document.querySelector('#grid').scrollIntoView());
+    await sp.locator('#grid .card').first().click(); await sp.waitForTimeout(600);
+    check('NAV first video: prev disabled, next enabled, counter 1 / N', await sp.locator('.nav-prev').isDisabled() && await sp.locator('.nav-next').isEnabled() && (await sp.locator('.nav-count').textContent()) === `1 / ${cardsN}`);
+    const id0 = await sp.locator('#grid .card').first().getAttribute('data-id');
+    check('LINK opening sets #v=<id> in the address', (await sp.evaluate(() => location.hash)) === `#v=${id0}`);
+    await sp.locator('.nav-next').click();
+    check('NAV next shows 2nd video (title, hash, counter) and keeps the popup open without re-focusing', (await sp.locator('#modal-info h2').textContent()) === (await titleOf(1)) && (await sp.evaluate(() => location.hash)) === `#v=${await sp.locator('#grid .card').nth(1).getAttribute('data-id')}` && (await sp.locator('.nav-count').textContent()) === `2 / ${cardsN}` && await sp.locator('#modal iframe').count() === 1);
+    await sp.keyboard.press('ArrowRight');
+    check('NAV ArrowRight → 3rd video', (await sp.locator('#modal-info h2').textContent()) === (await titleOf(2)));
+    await sp.keyboard.press('ArrowLeft'); await sp.keyboard.press('ArrowLeft');
+    check('NAV ArrowLeft ×2 → back to 1st; extra ArrowLeft does nothing', (await sp.locator('#modal-info h2').textContent()) === (await titleOf(0)));
+    await sp.keyboard.press('ArrowLeft');
+    check('NAV no wrap-around at the start', (await sp.locator('.nav-count').textContent()) === `1 / ${cardsN}`);
+    check('NAV only one iframe exists (previous player removed)', await sp.locator('#modal iframe').count() === 1);
+    await sp.locator('.nav-link').click();
+    const copied = await sp.evaluate(() => navigator.clipboard.readText());
+    check('LINK copy button puts the shareable URL (page + #v=id) on the clipboard and confirms', copied === `${h.base}/index.html#v=${id0}` || copied === `${h.base}/#v=${id0}`, copied);
+    check('LINK copy confirmation text shown', (await sp.locator('.nav-link').textContent()).includes('복사했어요'));
+    await sp.keyboard.press('Escape');
+    check('LINK closing removes #v= from the address', !(await sp.evaluate(() => location.hash)));
+    // 공유 링크로 바로 열기 (새 탭 상황)
+    const p2 = await h.site(1280, 800);
+    await p2.goto(`${h.base}/index.html#v=${id0}`); await p2.reload(); await p2.waitForSelector('#modal:not([hidden])');
+    check('LINK opening a shared link shows that video immediately, with page behind inert', (await p2.locator('#modal-info h2').textContent()) === (await titleOf(0)) && await p2.evaluate(() => document.querySelector('main').inert));
+    await p2.evaluate(() => { location.hash = ''; });
+    await p2.waitForSelector('#modal', { state: 'hidden' });
+    check('LINK removing the hash closes the popup', true);
+    await p2.goto(`${h.base}/index.html#v=nonexistent`); await p2.reload();
+    check('LINK unknown id → page loads normally, no popup, no error', await p2.locator('#modal').isHidden() && p2.errs.length === 0);
+    await p2.goto(`${h.base}/index.html#v=%E0%A4%A`); await p2.reload();
+    check('LINK malformed % escape in hash does not crash', await p2.locator('#modal').isHidden() && p2.errs.length === 0, p2.errs.join());
+    await p2.close();
+    // 대표 영상 카드에서 연 경우에도 이전/다음
+    // 라이트박스
+    await sp.locator('#grid .card').nth(1).click(); await sp.waitForTimeout(600);
+    await sp.locator('.modal-gallery a').first().click();
+    check('LB click on a gallery image opens the lightbox (not a new tab), focus on its close button', await sp.locator('#lightbox').isVisible() && await sp.evaluate(() => document.activeElement.classList.contains('lb-close')) && (await sp.locator('.lb-count').textContent()) === '1 / 3');
+    check('LB image shown large inside the viewport', await sp.evaluate(() => { const i = document.querySelector('#lightbox img').getBoundingClientRect(); return i.width > 50 && i.right <= innerWidth && i.bottom <= innerHeight; }));
+    await sp.keyboard.press('ArrowRight'); await sp.keyboard.press('ArrowRight');
+    check('LB ArrowRight → 3rd image, ▶ disabled', (await sp.locator('.lb-count').textContent()) === '3 / 3' && await sp.locator('.lb-next').isDisabled());
+    await sp.keyboard.press('ArrowLeft');
+    check('LB ArrowLeft → 2nd image', (await sp.locator('.lb-count').textContent()) === '2 / 3');
+    const tabs = []; for (let i = 0; i < 5; i++) { await sp.keyboard.press('Tab'); tabs.push(await sp.evaluate(() => document.activeElement.closest('#lightbox') ? document.activeElement.className : 'OUT')); }
+    check('LB Tab stays inside the lightbox', !tabs.includes('OUT'), tabs.join());
+    check('LB popup behind is inert while lightbox is open', await sp.evaluate(() => document.querySelector('#modal').inert));
+    await sp.keyboard.press('Escape');
+    check('LB Escape closes only the lightbox (popup stays), image src released, focus back on the thumbnail', await sp.locator('#lightbox').isHidden() && await sp.locator('#modal').isVisible() && await sp.evaluate(() => !document.querySelector('#lightbox img').getAttribute('src') && !document.querySelector('#modal').inert && document.activeElement.closest('.modal-gallery') !== null));
+    await sp.locator('.modal-gallery a').nth(1).click();
+    await sp.mouse.click(10, 400);
+    check('LB click on the dark backdrop closes it', await sp.locator('#lightbox').isHidden() && await sp.locator('#modal').isVisible());
+    await sp.locator('.modal-gallery a').first().click({ modifiers: ['Control'] }).catch(() => {});
+    check('LB Ctrl+click is left to the browser (lightbox not opened)', await sp.locator('#lightbox').isHidden());
+    await sp.locator('.modal-gallery a').first().click(); await sp.keyboard.press('ArrowRight');
+    await sp.locator('.lb-close').click(); await sp.keyboard.press('Escape');
+    check('LB closing the popup while lightbox open leaves nothing behind', await sp.locator('#lightbox').isHidden() && await sp.locator('#modal').isHidden() && await sp.evaluate(() => !document.querySelector('main').inert));
+    check('NAV/LB no JS errors', sp.errs.length === 0, sp.errs.join());
     await sp.close();
     h.reset();
   }
